@@ -1,0 +1,232 @@
+{
+  "version": "1.0.0",
+  "lastUpdated": "2026-01-28",
+  "description": "근골격계 질환 업무관련성 평가 - 직종별 신체부담 표준값",
+  "presets": [
+    {
+      "id": 1,
+      "jobName": "건설 현장 배근공",
+      "category": "건설업",
+      "weight": 2500,
+      "squatting": 180,
+      "description": "철근 배근 작업",
+      "source": "산업안전보건연구원 2023"
+    },
+    {
+      "id": 2,
+      "jobName": "건설 현장 목수",
+      "category": "건설업",
+      "weight": 2000,
+      "squatting": 150,
+      "description": "거푸집 설치 작업",
+      "source": "산업안전보건연구원 2023"
+    },
+    {
+      "id": 3,
+      "jobName": "건설 현장 미장공",
+      "category": "건설업",
+      "weight": 1500,
+      "squatting": 120,
+      "description": "미장 작업",
+      "source": "산업안전보건연구원 2023"
+    },
+    {
+      "id": 4,
+      "jobName": "타일공",
+      "category": "건설업",
+      "weight": 1000,
+      "squatting": 200,
+      "description": "타일 시공",
+      "source": "산업안전보건연구원 2023"
+    },
+    {
+      "id": 5,
+      "jobName": "배관공",
+      "category": "건설업",
+      "weight": 1800,
+      "squatting": 140,
+      "description": "배관 설치",
+      "source": "산업안전보건연구원 2023"
+    },
+    {
+      "id": 6,
+      "jobName": "전기공",
+      "category": "건설업",
+      "weight": 800,
+      "squatting": 100,
+      "description": "전기 배선 작업",
+      "source": "산업안전보건연구원 2023"
+    },
+    {
+      "id": 7,
+      "jobName": "도장공",
+      "category": "건설업",
+      "weight": 600,
+      "squatting": 80,
+      "description": "페인트 도장 작업",
+      "source": "산업안전보건연구원 2023"
+    },
+    {
+      "id": 8,
+      "jobName": "자동차 조립공",
+      "category": "제조업",
+      "weight": 1200,
+      "squatting": 100,
+      "description": "자동차 조립 라인",
+      "source": "한국산업안전보건공단 2022"
+    },
+    {
+      "id": 9,
+      "jobName": "기계 조립원",
+      "category": "제조업",
+      "weight": 1500,
+      "squatting": 120,
+      "description": "기계 부품 조립",
+      "source": "한국산업안전보건공단 2022"
+    },
+    {
+      "id": 10,
+      "jobName": "용접공",
+      "category": "제조업",
+      "weight": 800,
+      "squatting": 90,
+      "description": "금속 용접 작업",
+      "source": "한국산업안전보건공단 2022"
+    },
+    {
+      "id": 11,
+      "jobName": "포장작업원",
+      "category": "제조업",
+      "weight": 300,
+      "squatting": 60,
+      "description": "제품 포장",
+      "source": "한국산업안전보건공단 2022"
+    },
+    {
+      "id": 12,
+      "jobName": "금형공",
+      "category": "제조업",
+      "weight": 1000,
+      "squatting": 70,
+      "description": "금형 제작 및 관리",
+      "source": "한국산업안전보건공단 2022"
+    },
+    {
+      "id": 13,
+      "jobName": "프레스 작업원",
+      "category": "제조업",
+      "weight": 1400,
+      "squatting": 50,
+      "description": "프레스 기계 조작",
+      "source": "한국산업안전보건공단 2022"
+    },
+    {
+      "id": 14,
+      "jobName": "물류 창고 작업자",
+      "category": "물류업",
+      "weight": 2200,
+      "squatting": 80,
+      "description": "물류 하역 및 적재",
+      "source": "물류산업진흥원 2023"
+    },
+    {
+      "id": 15,
+      "jobName": "택배 배송기사",
+      "category": "물류업",
+      "weight": 1800,
+      "squatting": 60,
+      "description": "택배 상하차 및 배송",
+      "source": "물류산업진흥원 2023"
+    },
+    {
+      "id": 16,
+      "jobName": "지게차 운전원",
+      "category": "물류업",
+      "weight": 500,
+      "squatting": 30,
+      "description": "지게차 운전 및 하역",
+      "source": "물류산업진흥원 2023"
+    },
+    {
+      "id": 17,
+      "jobName": "농업 노동자",
+      "category": "농업",
+      "weight": 1000,
+      "squatting": 240,
+      "description": "농작물 재배",
+      "source": "농촌진흥청 2023"
+    },
+    {
+      "id": 18,
+      "jobName": "축산업 종사자",
+      "category": "농업",
+      "weight": 1200,
+      "squatting": 100,
+      "description": "가축 사육 및 관리",
+      "source": "농촌진흥청 2023"
+    },
+    {
+      "id": 19,
+      "jobName": "청소원",
+      "category": "서비스업",
+      "weight": 500,
+      "squatting": 90,
+      "description": "건물 청소",
+      "source": "고용노동부 2022"
+    },
+    {
+      "id": 20,
+      "jobName": "요양보호사",
+      "category": "서비스업",
+      "weight": 600,
+      "squatting": 100,
+      "description": "환자 케어",
+      "source": "보건복지부 2023"
+    },
+    {
+      "id": 21,
+      "jobName": "조리사",
+      "category": "서비스업",
+      "weight": 400,
+      "squatting": 30,
+      "description": "음식 조리",
+      "source": "고용노동부 2022"
+    },
+    {
+      "id": 22,
+      "jobName": "미용사",
+      "category": "서비스업",
+      "weight": 200,
+      "squatting": 40,
+      "description": "미용 서비스",
+      "source": "고용노동부 2022"
+    },
+    {
+      "id": 23,
+      "jobName": "간호조무사",
+      "category": "의료",
+      "weight": 500,
+      "squatting": 80,
+      "description": "환자 간호 보조",
+      "source": "보건복지부 2023"
+    },
+    {
+      "id": 24,
+      "jobName": "물리치료사",
+      "category": "의료",
+      "weight": 400,
+      "squatting": 60,
+      "description": "물리치료 시행",
+      "source": "보건복지부 2023"
+    },
+    {
+      "id": 25,
+      "jobName": "자동차 정비사",
+      "category": "정비업",
+      "weight": 1000,
+      "squatting": 150,
+      "description": "자동차 수리 및 정비",
+      "source": "한국산업안전보건공단 2022"
+    }
+  ]
+}
