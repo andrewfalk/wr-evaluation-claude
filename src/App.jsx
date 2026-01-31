@@ -89,7 +89,7 @@ function App() {
   const addJob = () => updatePatient(d => ({
     ...d,
     jobs: [...d.jobs, {
-      id: Date.now(),
+      id: Date.now() + Math.random(),
       jobName: '', presetId: null, startDate: '', endDate: '', evidenceSources: [],
       weight: '', squatting: '', stairs: false, kneeTwist: false, startStop: false,
       tightSpace: false, kneeContact: false, jumpDown: false

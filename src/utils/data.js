@@ -33,7 +33,7 @@ export const createPatientData = () => ({
   specialNotes: '',
   diagnoses: [createDiagnosis()],
   jobs: [{
-    id: Date.now(),
+    id: Date.now() + Math.random(),
     jobName: '',
     presetId: null,
     startDate: '',

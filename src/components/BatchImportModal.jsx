@@ -92,6 +92,7 @@ export function BatchImportModal({ onClose, onImport }) {
       if (colMap.jobName >= 0) {
         p.data.jobs = [{
           ...p.data.jobs[0],
+          id: Date.now() + Math.random(),
           jobName: row[colMap.jobName] || '',
           startDate: parseDate(row[colMap.jobStart]),
           endDate: parseDate(row[colMap.jobEnd]),
