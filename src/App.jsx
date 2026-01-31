@@ -118,7 +118,10 @@ function App() {
   const handleBatchImport = (newPatients) => {
     setPatients(prev => [...prev, ...newPatients]);
     setActiveId(newPatients[0].id);
-    alert(`${newPatients.length}명의 환자 데이터를 가져왔습니다`);
+    // alert() 대신 setTimeout으로 포커스 복원 후 알림 표시
+    setTimeout(() => {
+      window.focus();
+    }, 100);
   };
 
   const validate = (data) => {
