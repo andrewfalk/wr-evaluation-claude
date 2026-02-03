@@ -2,7 +2,7 @@ import { useState, useRef } from 'react';
 import * as XLSX from 'xlsx';
 import { createPatient, createDiagnosis } from '../utils/data';
 
-export function BatchImportModal({ onClose, onImport }) {
+export function BatchImportModal({ onClose, onImport, existingPatients = [] }) {
   const [file, setFile] = useState(null);
   const [preview, setPreview] = useState(null);
   const [columns, setColumns] = useState([]);
@@ -12,7 +12,8 @@ export function BatchImportModal({ onClose, onImport }) {
   const handleFile = (f) => {
     if (!f) return;
     setFile(f);
-    
+    setImportStats(null);
+
     const reader = new FileReader();
     reader.onload = (e) => {
       try {
@@ -20,7 +21,7 @@ export function BatchImportModal({ onClose, onImport }) {
         const wb = XLSX.read(data, { type: 'array' });
         const sheet = wb.Sheets[wb.SheetNames[0]];
         const json = XLSX.utils.sheet_to_json(sheet, { header: 1 });
-        
+
         if (json.length > 0) {
           setColumns(json[0]);
           setPreview(json);
@@ -38,15 +39,26 @@ export function BatchImportModal({ onClose, onImport }) {
     const headers = preview[0].map(h => (h || '').toString().toLowerCase());
     const findCol = (keywords) => headers.findIndex(h => keywords.some(k => h.includes(k)));
 
+    // 19개 변수 매핑 (기존 13개 + 신규 6개)
     const colMap = {
+      // 기본 정보 (5개)
       name: findCol(['이름', 'name']),
       birthDate: findCol(['생년월일', 'birth']),
       injuryDate: findCol(['재해', 'injury']),
       height: findCol(['키', 'height']),
       weight: findCol(['몸무게', 'weight']),
+      // 신규 추가 (6개)
+      gender: findCol(['성별', 'gender', 'sex']),
+      hospitalName: findCol(['병원', 'hospital']),
+      department: findCol(['진료과', 'department', 'dept']),
+      doctorName: findCol(['담당의', 'doctor', '의사']),
+      specialNotes: findCol(['특이사항', 'special', 'note']),
+      returnConsiderations: findCol(['복귀', 'return', 'consideration']),
+      // 상병 정보 (3개)
       diagCode: findCol(['진단코드', 'code']),
       diagName: findCol(['진단명', 'diag']),
       side: findCol(['부위', 'side']),
+      // 직업 정보 (5개)
       jobName: findCol(['직종', 'job']),
       jobStart: findCol(['시작', 'start']),
       jobEnd: findCol(['종료', 'end']),
@@ -59,6 +71,11 @@ export function BatchImportModal({ onClose, onImport }) {
       'right': 'right', 'left': 'left', 'both': 'both'
     };
 
+    const genderMap = {
+      '남': 'male', '여': 'female', '남자': 'male', '여자': 'female',
+      'male': 'male', 'female': 'female', 'm': 'male', 'f': 'female'
+    };
+
     const parseDate = (v) => {
       if (!v) return '';
       if (typeof v === 'number') {
@@ -68,52 +85,146 @@ export function BatchImportModal({ onClose, onImport }) {
       return String(v);
     };
 
-    const patients = [];
+    const getVal = (row, key) => {
+      const idx = colMap[key];
+      return idx >= 0 ? row[idx] : undefined;
+    };
+
+    // 통계 추적
+    let stats = { newPatients: 0, newDiagnoses: 0, newJobs: 0, skipped: 0 };
+
+    // 결과 환자 목록 (기존 환자 복사본으로 시작)
+    const resultPatients = existingPatients.map(p => ({
+      ...p,
+      data: {
+        ...p.data,
+        diagnoses: [...p.data.diagnoses],
+        jobs: [...p.data.jobs]
+      }
+    }));
+
+    // 각 행 처리
     for (let i = 1; i < preview.length; i++) {
       const row = preview[i];
-      if (!row || row.length === 0 || !row[colMap.name]) continue;
+      if (!row || row.length === 0 || !getVal(row, 'name')) continue;
 
-      const p = createPatient();
-      p.data.name = row[colMap.name] || '';
-      p.data.birthDate = parseDate(row[colMap.birthDate]);
-      p.data.injuryDate = parseDate(row[colMap.injuryDate]);
-      p.data.height = row[colMap.height] ? String(row[colMap.height]) : '';
-      p.data.weight = row[colMap.weight] ? String(row[colMap.weight]) : '';
+      const rowName = String(getVal(row, 'name') || '').trim();
+      const rowBirthDate = parseDate(getVal(row, 'birthDate'));
+      const rowDiagCode = String(getVal(row, 'diagCode') || '').trim();
+      const rowDiagName = String(getVal(row, 'diagName') || '').trim();
+      const rowSide = sideMap[(String(getVal(row, 'side') || '')).toLowerCase()] || '';
+      const rowJobName = String(getVal(row, 'jobName') || '').trim();
 
-      if (colMap.diagCode >= 0 || colMap.diagName >= 0) {
-        p.data.diagnoses = [{
-          ...createDiagnosis(),
-          code: row[colMap.diagCode] || '',
-          name: row[colMap.diagName] || '',
-          side: sideMap[(row[colMap.side] || '').toLowerCase()] || ''
-        }];
+      // 3. 환자 찾기 (이름 + 생년월일)
+      let existingPatient = resultPatients.find(p =>
+        p.data.name === rowName && p.data.birthDate === rowBirthDate
+      );
+
+      if (!existingPatient) {
+        // 3-1: 새 환자 추가
+        const p = createPatient();
+        p.data.name = rowName;
+        p.data.birthDate = rowBirthDate;
+        p.data.injuryDate = parseDate(getVal(row, 'injuryDate'));
+        p.data.height = getVal(row, 'height') ? String(getVal(row, 'height')) : '';
+        p.data.weight = getVal(row, 'weight') ? String(getVal(row, 'weight')) : '';
+
+        // 신규 6개 필드
+        p.data.gender = genderMap[(String(getVal(row, 'gender') || '')).toLowerCase()] || '';
+        p.data.hospitalName = String(getVal(row, 'hospitalName') || '');
+        p.data.department = String(getVal(row, 'department') || '');
+        p.data.doctorName = String(getVal(row, 'doctorName') || '');
+        p.data.specialNotes = String(getVal(row, 'specialNotes') || '');
+        p.data.returnConsiderations = String(getVal(row, 'returnConsiderations') || '');
+
+        // 상병 추가
+        if (rowDiagCode || rowDiagName) {
+          p.data.diagnoses = [{
+            ...createDiagnosis(),
+            code: rowDiagCode,
+            name: rowDiagName,
+            side: rowSide
+          }];
+        }
+
+        // 직업 추가
+        if (rowJobName) {
+          p.data.jobs = [{
+            ...p.data.jobs[0],
+            id: Date.now() + Math.random(),
+            jobName: rowJobName,
+            startDate: parseDate(getVal(row, 'jobStart')),
+            endDate: parseDate(getVal(row, 'jobEnd')),
+            weight: getVal(row, 'jobWeight') ? String(getVal(row, 'jobWeight')) : '',
+            squatting: getVal(row, 'jobSquat') ? String(getVal(row, 'jobSquat')) : ''
+          }];
+        }
+
+        resultPatients.push(p);
+        stats.newPatients++;
+      } else {
+        // 3-2: 같은 사람 발견
+        const existingDiag = existingPatient.data.diagnoses.find(d =>
+          d.code === rowDiagCode && d.name === rowDiagName && d.side === rowSide
+        );
+
+        if (!existingDiag && (rowDiagCode || rowDiagName)) {
+          // 3-2-2: 상병이 다름 → 상병 추가
+          existingPatient.data.diagnoses.push({
+            ...createDiagnosis(),
+            code: rowDiagCode,
+            name: rowDiagName,
+            side: rowSide
+          });
+          stats.newDiagnoses++;
+        }
+
+        // 3-2-3: 직종 비교
+        if (rowJobName) {
+          const existingJob = existingPatient.data.jobs.find(j => j.jobName === rowJobName);
+
+          if (!existingJob) {
+            // 직종이 다름 → 직종 추가
+            existingPatient.data.jobs.push({
+              id: Date.now() + Math.random() + i,
+              jobName: rowJobName,
+              presetId: null,
+              startDate: parseDate(getVal(row, 'jobStart')),
+              endDate: parseDate(getVal(row, 'jobEnd')),
+              evidenceSources: [],
+              weight: getVal(row, 'jobWeight') ? String(getVal(row, 'jobWeight')) : '',
+              squatting: getVal(row, 'jobSquat') ? String(getVal(row, 'jobSquat')) : '',
+              stairs: false,
+              kneeTwist: false,
+              startStop: false,
+              tightSpace: false,
+              kneeContact: false,
+              jumpDown: false
+            });
+            stats.newJobs++;
+          } else {
+            // 3-2-1: 상병도 같고 직종도 같음 → 중복, 건너뜀
+            if (existingDiag) {
+              stats.skipped++;
+            }
+          }
+        }
       }
-
-      if (colMap.jobName >= 0) {
-        p.data.jobs = [{
-          ...p.data.jobs[0],
-          id: Date.now() + Math.random(),
-          jobName: row[colMap.jobName] || '',
-          startDate: parseDate(row[colMap.jobStart]),
-          endDate: parseDate(row[colMap.jobEnd]),
-          weight: row[colMap.jobWeight] ? String(row[colMap.jobWeight]) : '',
-          squatting: row[colMap.jobSquat] ? String(row[colMap.jobSquat]) : ''
-        }];
-      }
-
-      patients.push(p);
     }
 
-    if (patients.length === 0) return alert('가져올 데이터가 없습니다');
-    onImport(patients);
+    if (stats.newPatients === 0 && stats.newDiagnoses === 0 && stats.newJobs === 0) {
+      return alert('가져올 데이터가 없습니다 (모두 중복)');
+    }
+
+    onImport(resultPatients, stats);
     onClose();
   };
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={e => e.stopPropagation()}>
+      <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 600 }}>
         <h2>📥 일괄 Import (다중 환자)</h2>
-        
+
         <div
           className={`import-zone ${dragover ? 'dragover' : ''}`}
           onClick={() => fileRef.current.click()}
@@ -135,9 +246,21 @@ export function BatchImportModal({ onClose, onImport }) {
           {file && <p style={{ marginTop: 10, color: '#667eea' }}>✅ {file.name}</p>}
         </div>
 
+        {/* 지원 컬럼 안내 */}
+        <details style={{ marginTop: 10, fontSize: '0.8rem', color: '#666' }}>
+          <summary style={{ cursor: 'pointer' }}>📋 지원하는 컬럼 (19개)</summary>
+          <div style={{ marginTop: 8, padding: 10, background: '#f8f9fa', borderRadius: 4 }}>
+            <strong>기본정보:</strong> 이름, 생년월일, 재해일자, 키, 몸무게, 성별<br/>
+            <strong>기관정보:</strong> 병원명, 진료과, 담당의<br/>
+            <strong>기타:</strong> 특이사항, 복귀고려사항<br/>
+            <strong>상병:</strong> 진단코드, 진단명, 부위<br/>
+            <strong>직업:</strong> 직종명, 시작일, 종료일, 중량물(kg), 쪼그려앉기(분)
+          </div>
+        </details>
+
         {preview && preview.length > 1 && (
           <div className="batch-summary">
-            <h4>📋 미리보기: {preview.length - 1}명 환자</h4>
+            <h4>📋 미리보기: {preview.length - 1}행</h4>
             <div style={{ overflowX: 'auto', marginTop: 10 }}>
               <table className="import-preview">
                 <thead>
@@ -156,7 +279,7 @@ export function BatchImportModal({ onClose, onImport }) {
                   {preview.length > 6 && (
                     <tr>
                       <td colSpan={Math.min(columns.length, 9)} style={{ textAlign: 'center', color: '#888' }}>
-                        ... 외 {preview.length - 6}명
+                        ... 외 {preview.length - 6}행
                       </td>
                     </tr>
                   )}

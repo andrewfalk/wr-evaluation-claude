@@ -115,12 +115,17 @@ function App() {
     if (activeId === id) setActiveId(newPatients[0].id);
   };
 
-  const handleBatchImport = (newPatients) => {
-    setPatients(prev => [...prev, ...newPatients]);
-    setActiveId(newPatients[0].id);
-    // alert() 대신 setTimeout으로 포커스 복원 후 알림 표시
+  const handleBatchImport = (mergedPatients, stats) => {
+    setPatients(mergedPatients);
+    // 새 환자가 있으면 첫 번째 새 환자로 이동, 없으면 현재 유지
+    if (stats.newPatients > 0) {
+      const newPatient = mergedPatients[mergedPatients.length - stats.newPatients];
+      if (newPatient) setActiveId(newPatient.id);
+    }
+    // alert() 대신 setTimeout으로 포커스 복원
     setTimeout(() => {
       window.focus();
+      console.log(`Import 완료: 신규 환자 ${stats.newPatients}명, 추가 상병 ${stats.newDiagnoses}건, 추가 직종 ${stats.newJobs}건, 중복 ${stats.skipped}건`);
     }, 100);
   };
 
@@ -636,7 +641,7 @@ function App() {
       </div>
 
       {/* 모달들 */}
-      {showBatchImport && <BatchImportModal onClose={() => setShowBatchImport(false)} onImport={handleBatchImport} />}
+      {showBatchImport && <BatchImportModal onClose={() => setShowBatchImport(false)} onImport={handleBatchImport} existingPatients={patients} />}
       
       {showSaveModal && (
         <div className="modal-overlay" onClick={() => setShowSaveModal(false)}>
