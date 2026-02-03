@@ -12,7 +12,6 @@ export function BatchImportModal({ onClose, onImport, existingPatients = [] }) {
   const handleFile = (f) => {
     if (!f) return;
     setFile(f);
-    setImportStats(null);
 
     const reader = new FileReader();
     reader.onload = (e) => {
