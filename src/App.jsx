@@ -198,8 +198,6 @@ function App() {
     data.diagnoses.forEach((d, i) => {
       if (d.code || d.name) {
         t += `\n상병 #${i + 1}: ${d.code} ${d.name}\n`;
-        if (d.side === 'right' || d.side === 'both') t += `  KLG(우측): ${getKlgText(d.klgRight)}\n`;
-        if (d.side === 'left' || d.side === 'both') t += `  KLG(좌측): ${getKlgText(d.klgLeft)}\n`;
         if (d.side === 'right' || d.side === 'both') {
           t += `  우측: 상병 상태(${getStatusText(d.confirmedRight)}) / 업무관련성(${d.assessmentRight === 'high' ? '높음' : d.assessmentRight === 'low' ? '낮음' : '-'})`;
           if (d.assessmentRight === 'low') t += ` - 업무관련성 평가 낮음 사유: ${getReasonText(d.reasonRight, d.reasonRightOther)}`;
@@ -264,11 +262,11 @@ function App() {
     const diagSummary = data.diagnoses.filter(d => d.code || d.name).map((d, i) => {
       let summary = `#${i + 1}. ${d.code} ${d.name} (${getSideText(d.side)})`;
       if (d.side === 'right' || d.side === 'both') {
-        summary += `\n   우측 KLG: ${getKlgText(d.klgRight)} / 상병 상태: ${getStatusText(d.confirmedRight)} / 업무관련성: ${d.assessmentRight === 'high' ? '높음' : d.assessmentRight === 'low' ? '낮음' : '-'}`;
+        summary += `\n   우측 상병 상태: ${getStatusText(d.confirmedRight)} / 업무관련성: ${d.assessmentRight === 'high' ? '높음' : d.assessmentRight === 'low' ? '낮음' : '-'}`;
         if (d.assessmentRight === 'low') summary += ` (업무관련성 평가 낮음 사유: ${getReasonText(d.reasonRight, d.reasonRightOther)})`;
       }
       if (d.side === 'left' || d.side === 'both') {
-        summary += `\n   좌측 KLG: ${getKlgText(d.klgLeft)} / 상병 상태: ${getStatusText(d.confirmedLeft)} / 업무관련성: ${d.assessmentLeft === 'high' ? '높음' : d.assessmentLeft === 'low' ? '낮음' : '-'}`;
+        summary += `\n   좌측 상병 상태: ${getStatusText(d.confirmedLeft)} / 업무관련성: ${d.assessmentLeft === 'high' ? '높음' : d.assessmentLeft === 'low' ? '낮음' : '-'}`;
         if (d.assessmentLeft === 'low') summary += ` (업무관련성 평가 낮음 사유: ${getReasonText(d.reasonLeft, d.reasonLeftOther)})`;
       }
       return summary;
@@ -570,12 +568,32 @@ function App() {
                         <div className="form-group"><label>종료일</label><input type="date" value={job.endDate} onChange={e => handleJob(i, 'endDate', e.target.value)} /></div>
                         <div className="form-group">
                           <label>기간 {job.workPeriodOverride ? '(수동)' : '(자동)'}</label>
-                          <input
-                            value={job.workPeriodOverride || formatWorkPeriod(job.startDate, job.endDate)}
-                            onChange={e => handleJob(i, 'workPeriodOverride', e.target.value)}
-                            placeholder="예: 10년 2개월"
-                            style={job.workPeriodOverride ? { borderColor: '#667eea', background: '#f0f3ff' } : {}}
-                          />
+                          {(() => {
+                            const auto = formatWorkPeriod(job.startDate, job.endDate);
+                            const src = job.workPeriodOverride || auto;
+                            const yVal = src.match(/(\d+)\s*년/)?.[1] || '';
+                            const mVal = src.match(/(\d+)\s*개월/)?.[1] || '';
+                            const ovr = job.workPeriodOverride;
+                            const ovrStyle = ovr ? { borderColor: '#667eea', background: '#f0f3ff' } : {};
+                            return (
+                              <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                                <input type="number" min="0" style={{ width: 70, ...ovrStyle }} value={yVal}
+                                  onChange={e => {
+                                    const y = parseInt(e.target.value) || 0;
+                                    const m = parseInt(job.workPeriodOverride?.match(/(\d+)\s*개월/)?.[1]) || 0;
+                                    handleJob(i, 'workPeriodOverride', (y || m) ? `${y}년 ${m}개월` : '');
+                                  }} />
+                                <span>년</span>
+                                <input type="number" min="0" max="11" style={{ width: 70, ...ovrStyle }} value={mVal}
+                                  onChange={e => {
+                                    const m = parseInt(e.target.value) || 0;
+                                    const y = parseInt(job.workPeriodOverride?.match(/(\d+)\s*년/)?.[1]) || 0;
+                                    handleJob(i, 'workPeriodOverride', (y || m) ? `${y}년 ${m}개월` : '');
+                                  }} />
+                                <span>개월</span>
+                              </div>
+                            );
+                          })()}
                         </div>
                       </div>
                       <div className="form-row">
@@ -708,7 +726,7 @@ function App() {
                 ))}
                 <div className="section" style={{ marginTop: 20 }}>
                   <h2 className="section-title"><span className="section-icon">💼</span>복귀 고려사항</h2>
-                  <textarea rows="3" value={formData.returnConsiderations} onChange={e => handleInput('returnConsiderations', e.target.value)} placeholder="업무 복귀 시 고려사항..." />
+                  <textarea rows="3" style={{ width: '100%' }} value={formData.returnConsiderations} onChange={e => handleInput('returnConsiderations', e.target.value)} placeholder="업무 복귀 시 고려사항..." />
                 </div>
               </div>
             )}

@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react';
 import * as XLSX from 'xlsx';
 import { createPatient, createDiagnosis } from '../utils/data';
+import { formatWorkPeriod } from '../utils/calculations';
 
 export function BatchImportModal({ onClose, onImport, existingPatients = [] }) {
   const [file, setFile] = useState(null);
@@ -38,7 +39,7 @@ export function BatchImportModal({ onClose, onImport, existingPatients = [] }) {
     const headers = preview[0].map(h => (h || '').toString().toLowerCase());
     const findCol = (keywords) => headers.findIndex(h => keywords.some(k => h.includes(k)));
 
-    // 27개 변수 매핑 (기존 25개 + KLG 2개)
+    // 29개 변수 매핑 (기존 25개 + KLG 2개 + 근무기간 2개)
     const colMap = {
       // 기본 정보 (5개)
       name: findCol(['이름', 'name']),
@@ -57,10 +58,12 @@ export function BatchImportModal({ onClose, onImport, existingPatients = [] }) {
       diagCode: findCol(['진단코드', 'code']),
       diagName: findCol(['진단명', 'diag']),
       side: findCol(['부위', 'side']),
-      // 직업 정보 (5개)
+      // 직업 정보 (7개)
       jobName: findCol(['직종', 'job']),
       jobStart: findCol(['시작', 'start']),
       jobEnd: findCol(['종료', 'end']),
+      jobPeriodY: findCol(['근무기간(년)', '기간(년)', 'period_y']),
+      jobPeriodM: findCol(['근무기간(개월)', '기간(개월)', 'period_m']),
       jobWeight: findCol(['중량', 'kg']),
       jobSquat: findCol(['쪼그', 'squat']),
       // KLG 등급 (2개)
@@ -145,9 +148,10 @@ export function BatchImportModal({ onClose, onImport, existingPatients = [] }) {
       const rowKlgRight = parseKlg(getVal(row, 'klgRight'));
       const rowKlgLeft = parseKlg(getVal(row, 'klgLeft'));
 
-      // 3. 환자 찾기 (이름 + 생년월일)
+      // 3. 환자 찾기 (이름 + 생년월일 + 재해일자)
+      const rowInjuryDate = parseDate(getVal(row, 'injuryDate'));
       let existingPatient = resultPatients.find(p =>
-        p.data.name === rowName && p.data.birthDate === rowBirthDate
+        p.data.name === rowName && p.data.birthDate === rowBirthDate && p.data.injuryDate === rowInjuryDate
       );
 
       if (!existingPatient) {
@@ -155,7 +159,7 @@ export function BatchImportModal({ onClose, onImport, existingPatients = [] }) {
         const p = createPatient();
         p.data.name = rowName;
         p.data.birthDate = rowBirthDate;
-        p.data.injuryDate = parseDate(getVal(row, 'injuryDate'));
+        p.data.injuryDate = rowInjuryDate;
         p.data.height = getVal(row, 'height') ? String(getVal(row, 'height')) : '';
         p.data.weight = getVal(row, 'weight') ? String(getVal(row, 'weight')) : '';
 
@@ -187,7 +191,14 @@ export function BatchImportModal({ onClose, onImport, existingPatients = [] }) {
             jobName: rowJobName,
             startDate: parseDate(getVal(row, 'jobStart')),
             endDate: parseDate(getVal(row, 'jobEnd')),
-            workPeriodOverride: '',
+            workPeriodOverride: (() => {
+              const y = parseInt(getVal(row, 'jobPeriodY')) || 0;
+              const m = parseInt(getVal(row, 'jobPeriodM')) || 0;
+              if (!y && !m) return '';
+              const imported = `${y}년 ${m}개월`;
+              const auto = formatWorkPeriod(parseDate(getVal(row, 'jobStart')), parseDate(getVal(row, 'jobEnd')));
+              return imported !== auto ? imported : '';
+            })(),
             weight: getVal(row, 'jobWeight') ? String(getVal(row, 'jobWeight')) : '',
             squatting: getVal(row, 'jobSquat') ? String(getVal(row, 'jobSquat')) : '',
             stairs: parseBool(getVal(row, 'stairs')),
@@ -240,7 +251,14 @@ export function BatchImportModal({ onClose, onImport, existingPatients = [] }) {
               presetId: null,
               startDate: parseDate(getVal(row, 'jobStart')),
               endDate: parseDate(getVal(row, 'jobEnd')),
-              workPeriodOverride: '',
+              workPeriodOverride: (() => {
+                const y = parseInt(getVal(row, 'jobPeriodY')) || 0;
+                const m = parseInt(getVal(row, 'jobPeriodM')) || 0;
+                if (!y && !m) return '';
+                const imported = `${y}년 ${m}개월`;
+                const auto = formatWorkPeriod(parseDate(getVal(row, 'jobStart')), parseDate(getVal(row, 'jobEnd')));
+                return imported !== auto ? imported : '';
+              })(),
               evidenceSources: [],
               weight: getVal(row, 'jobWeight') ? String(getVal(row, 'jobWeight')) : '',
               squatting: getVal(row, 'jobSquat') ? String(getVal(row, 'jobSquat')) : '',
@@ -298,13 +316,13 @@ export function BatchImportModal({ onClose, onImport, existingPatients = [] }) {
 
         {/* 지원 컬럼 안내 */}
         <details style={{ marginTop: 10, fontSize: '0.8rem', color: '#666' }}>
-          <summary style={{ cursor: 'pointer' }}>📋 지원하는 컬럼 (27개)</summary>
+          <summary style={{ cursor: 'pointer' }}>📋 지원하는 컬럼 (29개)</summary>
           <div style={{ marginTop: 8, padding: 10, background: '#f8f9fa', borderRadius: 4 }}>
             <strong>기본정보:</strong> 이름, 생년월일, 재해일자, 키, 몸무게, 성별<br/>
             <strong>기관정보:</strong> 병원명, 진료과, 담당의<br/>
             <strong>기타:</strong> 특이사항, 복귀고려사항<br/>
             <strong>상병:</strong> 진단코드, 진단명, 부위, KLG(우측), KLG(좌측)<br/>
-            <strong>직업:</strong> 직종명, 시작일, 종료일, 중량물(kg), 쪼그려앉기(분)<br/>
+            <strong>직업:</strong> 직종명, 시작일, 종료일, 근무기간(년), 근무기간(개월), 중량물(kg), 쪼그려앉기(분)<br/>
             <strong>보조변수:</strong> 계단오르내리기, 무릎비틀림, 출발정지반복, 좁은공간, 무릎접촉충격, 뛰어내리기
           </div>
         </details>
