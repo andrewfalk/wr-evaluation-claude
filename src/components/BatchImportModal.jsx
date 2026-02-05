@@ -38,7 +38,7 @@ export function BatchImportModal({ onClose, onImport, existingPatients = [] }) {
     const headers = preview[0].map(h => (h || '').toString().toLowerCase());
     const findCol = (keywords) => headers.findIndex(h => keywords.some(k => h.includes(k)));
 
-    // 19개 변수 매핑 (기존 13개 + 신규 6개)
+    // 27개 변수 매핑 (기존 25개 + KLG 2개)
     const colMap = {
       // 기본 정보 (5개)
       name: findCol(['이름', 'name']),
@@ -62,7 +62,17 @@ export function BatchImportModal({ onClose, onImport, existingPatients = [] }) {
       jobStart: findCol(['시작', 'start']),
       jobEnd: findCol(['종료', 'end']),
       jobWeight: findCol(['중량', 'kg']),
-      jobSquat: findCol(['쪼그', 'squat'])
+      jobSquat: findCol(['쪼그', 'squat']),
+      // KLG 등급 (2개)
+      klgRight: findCol(['klg(우측)', 'klg우측', 'klg_right', 'klg(right)']),
+      klgLeft: findCol(['klg(좌측)', 'klg좌측', 'klg_left', 'klg(left)']),
+      // 보조 변수 (6개)
+      stairs: findCol(['계단', 'stair']),
+      kneeTwist: findCol(['비틀', 'twist']),
+      startStop: findCol(['출발', 'start_stop', '정지']),
+      tightSpace: findCol(['좁은', 'tight', 'space']),
+      kneeContact: findCol(['접촉', 'contact', '충격']),
+      jumpDown: findCol(['뛰어', 'jump'])
     };
 
     const sideMap = {
@@ -89,6 +99,25 @@ export function BatchImportModal({ onClose, onImport, existingPatients = [] }) {
       return idx >= 0 ? row[idx] : undefined;
     };
 
+    const parseBool = (v) => {
+      if (!v) return false;
+      const s = String(v).toLowerCase().trim();
+      return ['true', '1', 'o', 'yes', 'y', '예', '○', '유'].includes(s);
+    };
+
+    const parseKlg = (v) => {
+      if (!v) return '';
+      const s = String(v).trim();
+      if (s === 'N/A' || s === '해당없음') return 'N/A';
+      const m = s.match(/(\d)/);
+      return m ? m[1] : '';
+    };
+
+    const applyKlg = (diag, side, klgRight, klgLeft) => {
+      if (side === 'right' || side === 'both') diag.klgRight = klgRight;
+      if (side === 'left' || side === 'both') diag.klgLeft = klgLeft;
+    };
+
     // 통계 추적
     let stats = { newPatients: 0, newDiagnoses: 0, newJobs: 0, skipped: 0 };
 
@@ -113,6 +142,8 @@ export function BatchImportModal({ onClose, onImport, existingPatients = [] }) {
       const rowDiagName = String(getVal(row, 'diagName') || '').trim();
       const rowSide = sideMap[(String(getVal(row, 'side') || '')).toLowerCase()] || '';
       const rowJobName = String(getVal(row, 'jobName') || '').trim();
+      const rowKlgRight = parseKlg(getVal(row, 'klgRight'));
+      const rowKlgLeft = parseKlg(getVal(row, 'klgLeft'));
 
       // 3. 환자 찾기 (이름 + 생년월일)
       let existingPatient = resultPatients.find(p =>
@@ -138,12 +169,14 @@ export function BatchImportModal({ onClose, onImport, existingPatients = [] }) {
 
         // 상병 추가
         if (rowDiagCode || rowDiagName) {
-          p.data.diagnoses = [{
+          const newDiag = {
             ...createDiagnosis(),
             code: rowDiagCode,
             name: rowDiagName,
             side: rowSide
-          }];
+          };
+          applyKlg(newDiag, rowSide, rowKlgRight, rowKlgLeft);
+          p.data.diagnoses = [newDiag];
         }
 
         // 직업 추가
@@ -154,8 +187,15 @@ export function BatchImportModal({ onClose, onImport, existingPatients = [] }) {
             jobName: rowJobName,
             startDate: parseDate(getVal(row, 'jobStart')),
             endDate: parseDate(getVal(row, 'jobEnd')),
+            workPeriodOverride: '',
             weight: getVal(row, 'jobWeight') ? String(getVal(row, 'jobWeight')) : '',
-            squatting: getVal(row, 'jobSquat') ? String(getVal(row, 'jobSquat')) : ''
+            squatting: getVal(row, 'jobSquat') ? String(getVal(row, 'jobSquat')) : '',
+            stairs: parseBool(getVal(row, 'stairs')),
+            kneeTwist: parseBool(getVal(row, 'kneeTwist')),
+            startStop: parseBool(getVal(row, 'startStop')),
+            tightSpace: parseBool(getVal(row, 'tightSpace')),
+            kneeContact: parseBool(getVal(row, 'kneeContact')),
+            jumpDown: parseBool(getVal(row, 'jumpDown'))
           }];
         }
 
@@ -169,13 +209,23 @@ export function BatchImportModal({ onClose, onImport, existingPatients = [] }) {
 
         if (!existingDiag && (rowDiagCode || rowDiagName)) {
           // 3-2-2: 상병이 다름 → 상병 추가
-          existingPatient.data.diagnoses.push({
+          const newDiag = {
             ...createDiagnosis(),
             code: rowDiagCode,
             name: rowDiagName,
             side: rowSide
-          });
+          };
+          applyKlg(newDiag, rowSide, rowKlgRight, rowKlgLeft);
+          existingPatient.data.diagnoses.push(newDiag);
           stats.newDiagnoses++;
+        } else if (existingDiag) {
+          // 기존 상병에 KLG 값 보완 (비어있는 경우만)
+          if (rowKlgRight && !existingDiag.klgRight && (rowSide === 'right' || rowSide === 'both')) {
+            existingDiag.klgRight = rowKlgRight;
+          }
+          if (rowKlgLeft && !existingDiag.klgLeft && (rowSide === 'left' || rowSide === 'both')) {
+            existingDiag.klgLeft = rowKlgLeft;
+          }
         }
 
         // 3-2-3: 직종 비교
@@ -190,15 +240,16 @@ export function BatchImportModal({ onClose, onImport, existingPatients = [] }) {
               presetId: null,
               startDate: parseDate(getVal(row, 'jobStart')),
               endDate: parseDate(getVal(row, 'jobEnd')),
+              workPeriodOverride: '',
               evidenceSources: [],
               weight: getVal(row, 'jobWeight') ? String(getVal(row, 'jobWeight')) : '',
               squatting: getVal(row, 'jobSquat') ? String(getVal(row, 'jobSquat')) : '',
-              stairs: false,
-              kneeTwist: false,
-              startStop: false,
-              tightSpace: false,
-              kneeContact: false,
-              jumpDown: false
+              stairs: parseBool(getVal(row, 'stairs')),
+              kneeTwist: parseBool(getVal(row, 'kneeTwist')),
+              startStop: parseBool(getVal(row, 'startStop')),
+              tightSpace: parseBool(getVal(row, 'tightSpace')),
+              kneeContact: parseBool(getVal(row, 'kneeContact')),
+              jumpDown: parseBool(getVal(row, 'jumpDown'))
             });
             stats.newJobs++;
           } else {
@@ -247,13 +298,14 @@ export function BatchImportModal({ onClose, onImport, existingPatients = [] }) {
 
         {/* 지원 컬럼 안내 */}
         <details style={{ marginTop: 10, fontSize: '0.8rem', color: '#666' }}>
-          <summary style={{ cursor: 'pointer' }}>📋 지원하는 컬럼 (19개)</summary>
+          <summary style={{ cursor: 'pointer' }}>📋 지원하는 컬럼 (27개)</summary>
           <div style={{ marginTop: 8, padding: 10, background: '#f8f9fa', borderRadius: 4 }}>
             <strong>기본정보:</strong> 이름, 생년월일, 재해일자, 키, 몸무게, 성별<br/>
             <strong>기관정보:</strong> 병원명, 진료과, 담당의<br/>
             <strong>기타:</strong> 특이사항, 복귀고려사항<br/>
-            <strong>상병:</strong> 진단코드, 진단명, 부위<br/>
-            <strong>직업:</strong> 직종명, 시작일, 종료일, 중량물(kg), 쪼그려앉기(분)
+            <strong>상병:</strong> 진단코드, 진단명, 부위, KLG(우측), KLG(좌측)<br/>
+            <strong>직업:</strong> 직종명, 시작일, 종료일, 중량물(kg), 쪼그려앉기(분)<br/>
+            <strong>보조변수:</strong> 계단오르내리기, 무릎비틀림, 출발정지반복, 좁은공간, 무릎접촉충격, 뛰어내리기
           </div>
         </details>
 

@@ -25,7 +25,31 @@ export function calculateWorkPeriod(s, e) {
 export function formatWorkPeriod(s, e) {
   if (!s || !e) return '-';
   const m = Math.round(calculateWorkPeriod(s, e) * 12);
-  return `${Math.floor(m / 12)}년 ${m % 12}월`;
+  return `${Math.floor(m / 12)}년 ${m % 12}개월`;
+}
+
+// workPeriodOverride 파싱 (예: "10년 2개월" → 년 단위 실수)
+export function parseWorkPeriodOverride(str) {
+  if (!str) return 0;
+  const yMatch = str.match(/(\d+)\s*년/);
+  const mMatch = str.match(/(\d+)\s*개월/);
+  const years = yMatch ? parseInt(yMatch[1]) : 0;
+  const months = mMatch ? parseInt(mMatch[1]) : 0;
+  return years + months / 12;
+}
+
+// 실효 근무기간 (override 우선, 없으면 자동계산)
+export function getEffectiveWorkPeriod(job) {
+  if (job.workPeriodOverride) {
+    return parseWorkPeriodOverride(job.workPeriodOverride);
+  }
+  return calculateWorkPeriod(job.startDate, job.endDate);
+}
+
+// 실효 근무기간 표시용
+export function getEffectiveWorkPeriodText(job) {
+  if (job.workPeriodOverride) return job.workPeriodOverride;
+  return formatWorkPeriod(job.startDate, job.endDate);
 }
 
 // 만 나이 계산
@@ -51,17 +75,17 @@ export function calculateBMI(h, w) {
 // 업무관련성 계산
 export function calculateWorkRelatedness(jobs, age) {
   if (!jobs?.length || age <= 30) return { min: 0, max: 0 };
-  
+
   let sumMin = 0;
   let sumMax = 0;
-  
+
   jobs.forEach(j => {
     const b = calculatePhysicalBurden(j.weight, j.squatting);
-    const p = calculateWorkPeriod(j.startDate, j.endDate);
+    const p = getEffectiveWorkPeriod(j);
     sumMin += (b.minScore - 1) * p;
     sumMax += (b.maxScore - 1) * p;
   });
-  
+
   const af = age - 30;
   return {
     min: Math.max(0, (sumMin / (af + sumMin)) * 100).toFixed(1),
@@ -78,8 +102,8 @@ export function evaluateCumulativeBurden(min, max) {
 export const getSideText = (side) => 
   side === 'right' ? '우측' : side === 'left' ? '좌측' : side === 'both' ? '양측' : '-';
 
-export const getStatusText = (status) => 
-  status === 'confirmed' ? '확인' : status === 'mild' ? '경미' : status === 'unconfirmed' ? '미확인' : '-';
+export const getStatusText = (status) =>
+  status === 'confirmed' ? '확인' : status === 'unconfirmed' ? '미확인' : '-';
 
 export const getKlgText = (klg) => 
   klg === 'N/A' ? '해당없음' : klg ? `${klg}등급` : '-';
@@ -88,6 +112,7 @@ export const getReasonText = (reason, other) => {
   if (reason === 'unrelated') return '신체부담과 관련없는 상병';
   if (reason === 'mild') return '상병 미확인/연령대비 경미';
   if (reason === 'delayed') return '업무중단 후 상당기간 경과';
+  if (reason === 'lowBurden') return '누적 신체부담 낮음';
   if (reason === 'other') return `기타 (${other || ''})`;
   return '-';
 };

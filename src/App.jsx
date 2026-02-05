@@ -8,7 +8,8 @@ import { createPatient, createPatientData, createDiagnosis, KLG_OPTIONS } from '
 import {
   calculatePhysicalBurden, calculateWorkPeriod, formatWorkPeriod,
   calculateAge, calculateBMI, calculateWorkRelatedness, evaluateCumulativeBurden,
-  getSideText, getStatusText, getKlgText, getReasonText
+  getSideText, getStatusText, getKlgText, getReasonText,
+  getEffectiveWorkPeriodText
 } from './utils/calculations';
 
 function App() {
@@ -40,7 +41,7 @@ function App() {
     const jb = formData.jobs.map(j => ({
       ...j,
       burden: calculatePhysicalBurden(j.weight, j.squatting),
-      period: formatWorkPeriod(j.startDate, j.endDate)
+      period: getEffectiveWorkPeriodText(j)
     }));
     return { age, bmi, relatedness: rel, cumulativeBurden: cum, jobBurdens: jb };
   }, [formData]);
@@ -90,8 +91,9 @@ function App() {
     ...d,
     jobs: [...d.jobs, {
       id: Date.now() + Math.random(),
-      jobName: '', presetId: null, startDate: '', endDate: '', evidenceSources: [],
-      weight: '', squatting: '', stairs: false, kneeTwist: false, startStop: false,
+      jobName: '', presetId: null, startDate: '', endDate: '', workPeriodOverride: '',
+      evidenceSources: [], weight: '', squatting: '',
+      stairs: false, kneeTwist: false, startStop: false,
       tightSpace: false, kneeContact: false, jumpDown: false
     }]
   }));
@@ -174,7 +176,7 @@ function App() {
     const jb = data.jobs.map(j => ({
       ...j,
       burden: calculatePhysicalBurden(j.weight, j.squatting),
-      period: formatWorkPeriod(j.startDate, j.endDate)
+      period: getEffectiveWorkPeriodText(j)
     }));
 
     let t = `업무관련성 특별진찰 소견서\n\n이름: ${data.name}(${data.gender === 'male' ? '남' : data.gender === 'female' ? '여' : ''})\n`;
@@ -185,22 +187,27 @@ function App() {
       if (d.code || d.name) t += `#${i + 1}. ${d.code} ${d.name} (${getSideText(d.side)})\n`;
     });
     t += `\n[특이사항]\n${data.specialNotes || '-'}\n\n[직업력]\n`;
-    jb.forEach((j, i) => t += `직력${i + 1}: ${j.jobName || '-'} | ${j.period} | ${j.weight || '-'}kg | ${j.squatting || '-'}분 | ${j.burden.level}\n`);
+    const auxLabelsReport = { stairs: '계단오르내리기', kneeTwist: '무릎 비틀림', startStop: '출발/정지 반복', tightSpace: '좁은 공간', kneeContact: '무릎 접촉/충격', jumpDown: '뛰어내리기' };
+    jb.forEach((j, i) => {
+      const checked = Object.entries(auxLabelsReport).filter(([k]) => j[k]).map(([, v]) => v);
+      t += `직력${i + 1}: ${j.jobName || '-'} | ${j.period} | ${j.weight || '-'}kg | ${j.squatting || '-'}분 | ${j.burden.level}\n`;
+      if (checked.length > 0) t += `  보조: ${checked.join(', ')}\n`;
+    });
     t += `\n[업무관련성] ${rel.min}% ~ ${rel.max}%\n[누적신체부담] ${cum}\n\n[종합소견]\n`;
     
     data.diagnoses.forEach((d, i) => {
       if (d.code || d.name) {
-        t += `\n상병 #${i + 1}: ${d.code} ${d.name}\n  확인 상병: ${d.confirmedCode} ${d.confirmedName}\n`;
+        t += `\n상병 #${i + 1}: ${d.code} ${d.name}\n`;
         if (d.side === 'right' || d.side === 'both') t += `  KLG(우측): ${getKlgText(d.klgRight)}\n`;
         if (d.side === 'left' || d.side === 'both') t += `  KLG(좌측): ${getKlgText(d.klgLeft)}\n`;
         if (d.side === 'right' || d.side === 'both') {
-          t += `  우측: 상태(${getStatusText(d.confirmedRight)}) / 업무관련성(${d.assessmentRight === 'high' ? '높음' : d.assessmentRight === 'low' ? '낮음' : '-'})`;
-          if (d.assessmentRight === 'low') t += ` - 사유: ${getReasonText(d.reasonRight, d.reasonRightOther)}`;
+          t += `  우측: 상병 상태(${getStatusText(d.confirmedRight)}) / 업무관련성(${d.assessmentRight === 'high' ? '높음' : d.assessmentRight === 'low' ? '낮음' : '-'})`;
+          if (d.assessmentRight === 'low') t += ` - 업무관련성 평가 낮음 사유: ${getReasonText(d.reasonRight, d.reasonRightOther)}`;
           t += `\n`;
         }
         if (d.side === 'left' || d.side === 'both') {
-          t += `  좌측: 상태(${getStatusText(d.confirmedLeft)}) / 업무관련성(${d.assessmentLeft === 'high' ? '높음' : d.assessmentLeft === 'low' ? '낮음' : '-'})`;
-          if (d.assessmentLeft === 'low') t += ` - 사유: ${getReasonText(d.reasonLeft, d.reasonLeftOther)}`;
+          t += `  좌측: 상병 상태(${getStatusText(d.confirmedLeft)}) / 업무관련성(${d.assessmentLeft === 'high' ? '높음' : d.assessmentLeft === 'low' ? '낮음' : '-'})`;
+          if (d.assessmentLeft === 'low') t += ` - 업무관련성 평가 낮음 사유: ${getReasonText(d.reasonLeft, d.reasonLeftOther)}`;
           t += `\n`;
         }
       }
@@ -211,22 +218,98 @@ function App() {
     return t;
   };
 
+  // EMR 서식용 Excel 데이터 생성 함수
+  const generateEMRData = (data) => {
+    const age = calculateAge(data.birthDate, data.injuryDate);
+    const bmi = calculateBMI(data.height, data.weight);
+    const rel = calculateWorkRelatedness(data.jobs, age);
+    const cum = evaluateCumulativeBurden(rel.min, rel.max);
+    const jb = data.jobs.map(j => ({
+      ...j,
+      burden: calculatePhysicalBurden(j.weight, j.squatting),
+      period: getEffectiveWorkPeriodText(j)
+    }));
+
+    // B5: 최종 확인 상병명
+    const b5 = data.diagnoses
+      .filter(d => d.confirmedCode || d.confirmedName)
+      .map(d => {
+        let line = `${d.confirmedCode || ''} ${d.confirmedName || ''}`.trim();
+        if (d.side === 'right' || d.side === 'both') {
+          line += `\n  - 우측: 상병 상태(${getStatusText(d.confirmedRight)}) / 업무관련성(${d.assessmentRight === 'high' ? '높음' : d.assessmentRight === 'low' ? '낮음' : '-'})`;
+          if (d.assessmentRight === 'low') line += ` (업무관련성 평가 낮음 사유: ${getReasonText(d.reasonRight, d.reasonRightOther)})`;
+        }
+        if (d.side === 'left' || d.side === 'both') {
+          line += `\n  - 좌측: 상병 상태(${getStatusText(d.confirmedLeft)}) / 업무관련성(${d.assessmentLeft === 'high' ? '높음' : d.assessmentLeft === 'low' ? '낮음' : '-'})`;
+          if (d.assessmentLeft === 'low') line += ` (업무관련성 평가 낮음 사유: ${getReasonText(d.reasonLeft, d.reasonLeftOther)})`;
+        }
+        return line;
+      }).join('\n\n');
+
+    // B6: 직업적 요인
+    const auxLabels = { stairs: '계단오르내리기', kneeTwist: '무릎 비틀림', startStop: '출발/정지 반복', tightSpace: '좁은 공간', kneeContact: '무릎 접촉/충격', jumpDown: '뛰어내리기' };
+    const jobLines = jb.filter(j => j.jobName).map(j => {
+      const checked = Object.entries(auxLabels).filter(([k]) => j[k]).map(([, v]) => v);
+      let line = `• ${j.jobName}: ${j.period} | 중량물 ${j.weight || '-'}kg | 쪼그려앉기 ${j.squatting || '-'}분 | 신체부담 ${j.burden.level}`;
+      if (checked.length > 0) line += `\n  보조: ${checked.join(', ')}`;
+      return line;
+    }).join('\n');
+    const avgRel = ((+rel.min + +rel.max) / 2).toFixed(1);
+    const b6 = `[직업력]\n${jobLines}\n\n[업무관련성 평가]\n• 최소: ${rel.min}%\n• 최대: ${rel.max}%\n• 평균: ${avgRel}%\n\n[누적신체부담]\n• ${cum}`;
+
+    // B7: 개인적 요인
+    const b7 = `• 키: ${data.height || '-'}cm\n• 몸무게: ${data.weight || '-'}kg\n• BMI: ${bmi || '-'}\n• 나이: ${age || '-'}세 (재해일 기준)\n• 특이사항: ${data.specialNotes || '없음'}`;
+
+    // B8: 종합소견
+    const diagSummary = data.diagnoses.filter(d => d.code || d.name).map((d, i) => {
+      let summary = `#${i + 1}. ${d.code} ${d.name} (${getSideText(d.side)})`;
+      if (d.side === 'right' || d.side === 'both') {
+        summary += `\n   우측 KLG: ${getKlgText(d.klgRight)} / 상병 상태: ${getStatusText(d.confirmedRight)} / 업무관련성: ${d.assessmentRight === 'high' ? '높음' : d.assessmentRight === 'low' ? '낮음' : '-'}`;
+        if (d.assessmentRight === 'low') summary += ` (업무관련성 평가 낮음 사유: ${getReasonText(d.reasonRight, d.reasonRightOther)})`;
+      }
+      if (d.side === 'left' || d.side === 'both') {
+        summary += `\n   좌측 KLG: ${getKlgText(d.klgLeft)} / 상병 상태: ${getStatusText(d.confirmedLeft)} / 업무관련성: ${d.assessmentLeft === 'high' ? '높음' : d.assessmentLeft === 'low' ? '낮음' : '-'}`;
+        if (d.assessmentLeft === 'low') summary += ` (업무관련성 평가 낮음 사유: ${getReasonText(d.reasonLeft, d.reasonLeftOther)})`;
+      }
+      return summary;
+    }).join('\n\n');
+    const b8 = `[상병별 종합소견]\n${diagSummary}\n\n[업무관련성 결론]\n• 업무관련성: ${rel.min}% ~ ${rel.max}%\n• 누적신체부담: ${cum}`;
+
+    // B9: 복귀 관련 고려사항
+    const b9 = data.returnConsiderations || '';
+
+    return { b5, b6, b7, b8, b9 };
+  };
+
   const handleExcelSingle = () => {
     const e = validate(formData);
     setErrors(e);
     if (Object.keys(e).length) return alert('필수항목 확인');
-    
+
+    const { b5, b6, b7, b8, b9 } = generateEMRData(formData);
+
     const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.aoa_to_sheet([['업무관련성특별진찰소견서'], ['종합소견', genReport(formData)]]);
-    ws['!cols'] = [{ wch: 20 }, { wch: 100 }];
-    XLSX.utils.book_append_sheet(wb, ws, '소견서');
+    const wsData = [
+      ['업무관련성특별진찰소견서(근골격계질병)', ''],
+      ['항목', '내용'],
+      ['1.신청상병명', ''],
+      ['2.진료기록 및 의학적 소견', ''],
+      ['3.최종 확인 상병명', b5],
+      ['4.직업적 요인', b6],
+      ['5.개인적 요인', b7],
+      ['6.종합소견', b8],
+      ['7.복귀 관련 고려사항', b9]
+    ];
+    const ws = XLSX.utils.aoa_to_sheet(wsData);
+    ws['!cols'] = [{ wch: 25 }, { wch: 80 }];
+    XLSX.utils.book_append_sheet(wb, ws, '업무관련성특별진찰소견서(근골격계질병)');
     XLSX.writeFile(wb, `업무관련성평가_${formData.name || '미입력'}_${new Date().toISOString().split('T')[0]}.xlsx`);
   };
 
   const handleExcelBatch = () => {
     const wb = XLSX.utils.book_new();
     const summaryData = [['번호', '이름', '생년월일', '재해일자', '나이', '진단명', '직종', '업무관련성(Min)', '업무관련성(Max)', '누적신체부담']];
-    
+
     patients.forEach((p, i) => {
       const d = p.data;
       const age = calculateAge(d.birthDate, d.injuryDate);
@@ -239,16 +322,30 @@ function App() {
         rel.min + '%', rel.max + '%', cum
       ]);
     });
-    
+
     const ws = XLSX.utils.aoa_to_sheet(summaryData);
     ws['!cols'] = [{ wch: 5 }, { wch: 10 }, { wch: 12 }, { wch: 12 }, { wch: 5 }, { wch: 25 }, { wch: 20 }, { wch: 12 }, { wch: 12 }, { wch: 12 }];
     XLSX.utils.book_append_sheet(wb, ws, '전체요약');
-    
+
+    // 개별 환자 시트 - EMR 서식 적용
     patients.forEach((p, i) => {
-      const ws2 = XLSX.utils.aoa_to_sheet([['소견서'], [genReport(p.data)]]);
+      const { b5, b6, b7, b8, b9 } = generateEMRData(p.data);
+      const wsData = [
+        ['업무관련성특별진찰소견서(근골격계질병)', ''],
+        ['항목', '내용'],
+        ['1.신청상병명', ''],
+        ['2.진료기록 및 의학적 소견', ''],
+        ['3.최종 확인 상병명', b5],
+        ['4.직업적 요인', b6],
+        ['5.개인적 요인', b7],
+        ['6.종합소견', b8],
+        ['7.복귀 관련 고려사항', b9]
+      ];
+      const ws2 = XLSX.utils.aoa_to_sheet(wsData);
+      ws2['!cols'] = [{ wch: 25 }, { wch: 80 }];
       XLSX.utils.book_append_sheet(wb, ws2, `${i + 1}_${p.data.name || '미입력'}`.slice(0, 31));
     });
-    
+
     XLSX.writeFile(wb, `업무관련성평가_일괄_${patients.length}명_${new Date().toISOString().split('T')[0]}.xlsx`);
   };
 
@@ -471,11 +568,27 @@ function App() {
                       <div className="form-row">
                         <div className="form-group"><label>시작일</label><input type="date" value={job.startDate} onChange={e => handleJob(i, 'startDate', e.target.value)} /></div>
                         <div className="form-group"><label>종료일</label><input type="date" value={job.endDate} onChange={e => handleJob(i, 'endDate', e.target.value)} /></div>
-                        <div className="form-group"><label>기간</label><input value={formatWorkPeriod(job.startDate, job.endDate)} readOnly /></div>
+                        <div className="form-group">
+                          <label>기간 {job.workPeriodOverride ? '(수동)' : '(자동)'}</label>
+                          <input
+                            value={job.workPeriodOverride || formatWorkPeriod(job.startDate, job.endDate)}
+                            onChange={e => handleJob(i, 'workPeriodOverride', e.target.value)}
+                            placeholder="예: 10년 2개월"
+                            style={job.workPeriodOverride ? { borderColor: '#667eea', background: '#f0f3ff' } : {}}
+                          />
+                        </div>
                       </div>
                       <div className="form-row">
                         <div className="form-group"><label>쪼그려앉기 (분/일)</label><input type="number" value={job.squatting} onChange={e => handleJob(i, 'squatting', e.target.value)} min="0" /></div>
                         <div className="form-group"><label>중량물 (kg/일)</label><input type="number" value={job.weight} onChange={e => handleJob(i, 'weight', e.target.value)} min="0" /></div>
+                      </div>
+                      <div className="form-row" style={{ flexWrap: 'wrap', gap: '8px 16px', marginTop: 4 }}>
+                        <label className="checkbox-label"><input type="checkbox" checked={job.stairs} onChange={e => handleJob(i, 'stairs', e.target.checked)} /><span>계단오르내리기</span></label>
+                        <label className="checkbox-label"><input type="checkbox" checked={job.kneeTwist} onChange={e => handleJob(i, 'kneeTwist', e.target.checked)} /><span>무릎 비틀림</span></label>
+                        <label className="checkbox-label"><input type="checkbox" checked={job.startStop} onChange={e => handleJob(i, 'startStop', e.target.checked)} /><span>출발/정지 반복</span></label>
+                        <label className="checkbox-label"><input type="checkbox" checked={job.tightSpace} onChange={e => handleJob(i, 'tightSpace', e.target.checked)} /><span>좁은 공간</span></label>
+                        <label className="checkbox-label"><input type="checkbox" checked={job.kneeContact} onChange={e => handleJob(i, 'kneeContact', e.target.checked)} /><span>무릎 접촉/충격</span></label>
+                        <label className="checkbox-label"><input type="checkbox" checked={job.jumpDown} onChange={e => handleJob(i, 'jumpDown', e.target.checked)} /><span>뛰어내리기</span></label>
                       </div>
                     </div>
                   );
@@ -492,11 +605,6 @@ function App() {
                     <div className="assessment-card-header">
                       <div className="assessment-card-title">상병 #{i + 1}: {diag.code} {diag.name}</div>
                       <div className="assessment-card-subtitle">부위: {getSideText(diag.side)}</div>
-                    </div>
-                    <h4 style={{ marginBottom: 8, color: '#333', fontSize: '0.85rem' }}>✅ 확인 상병</h4>
-                    <div className="form-row">
-                      <div className="form-group"><label>진단코드</label><input value={diag.confirmedCode} onChange={e => handleDiagnosis(i, 'confirmedCode', e.target.value)} /></div>
-                      <div className="form-group"><label>진단명</label><input value={diag.confirmedName} onChange={e => handleDiagnosis(i, 'confirmedName', e.target.value)} /></div>
                     </div>
                     {diag.side && (
                       <div className="klg-box">
@@ -526,11 +634,10 @@ function App() {
                         <h4 style={{ marginBottom: 8, color: '#1971c2', fontSize: '0.85rem' }}>▶ 우측</h4>
                         <div className="form-row">
                           <div className="form-group">
-                            <label>상태</label>
+                            <label>상병 상태</label>
                             <select value={diag.confirmedRight} onChange={e => handleDiagnosis(i, 'confirmedRight', e.target.value)}>
                               <option value="">선택</option>
                               <option value="confirmed">확인</option>
-                              <option value="mild">경미</option>
                               <option value="unconfirmed">미확인</option>
                             </select>
                           </div>
@@ -545,12 +652,13 @@ function App() {
                         </div>
                         {diag.assessmentRight === 'low' && (
                           <div className="form-group">
-                            <label>낮음 사유</label>
+                            <label>업무관련성 평가 낮음 사유</label>
                             <select value={diag.reasonRight} onChange={e => handleDiagnosis(i, 'reasonRight', e.target.value)}>
                               <option value="">선택</option>
                               <option value="unrelated">신체부담과 관련없는 상병</option>
                               <option value="mild">상병 미확인/연령대비 경미</option>
                               <option value="delayed">업무중단 후 상당기간 경과</option>
+                              <option value="lowBurden">누적 신체부담 낮음</option>
                               <option value="other">기타</option>
                             </select>
                             {diag.reasonRight === 'other' && <input value={diag.reasonRightOther} onChange={e => handleDiagnosis(i, 'reasonRightOther', e.target.value)} placeholder="기타 사유" style={{ marginTop: 8 }} />}
@@ -563,11 +671,10 @@ function App() {
                         <h4 style={{ marginBottom: 8, color: '#2b8a3e', fontSize: '0.85rem' }}>▶ 좌측</h4>
                         <div className="form-row">
                           <div className="form-group">
-                            <label>상태</label>
+                            <label>상병 상태</label>
                             <select value={diag.confirmedLeft} onChange={e => handleDiagnosis(i, 'confirmedLeft', e.target.value)}>
                               <option value="">선택</option>
                               <option value="confirmed">확인</option>
-                              <option value="mild">경미</option>
                               <option value="unconfirmed">미확인</option>
                             </select>
                           </div>
@@ -582,12 +689,13 @@ function App() {
                         </div>
                         {diag.assessmentLeft === 'low' && (
                           <div className="form-group">
-                            <label>낮음 사유</label>
+                            <label>업무관련성 평가 낮음 사유</label>
                             <select value={diag.reasonLeft} onChange={e => handleDiagnosis(i, 'reasonLeft', e.target.value)}>
                               <option value="">선택</option>
                               <option value="unrelated">신체부담과 관련없는 상병</option>
                               <option value="mild">상병 미확인/연령대비 경미</option>
                               <option value="delayed">업무중단 후 상당기간 경과</option>
+                              <option value="lowBurden">누적 신체부담 낮음</option>
                               <option value="other">기타</option>
                             </select>
                             {diag.reasonLeft === 'other' && <input value={diag.reasonLeftOther} onChange={e => handleDiagnosis(i, 'reasonLeftOther', e.target.value)} placeholder="기타 사유" style={{ marginTop: 8 }} />}

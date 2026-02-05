@@ -38,6 +38,7 @@ export const createPatientData = () => ({
     presetId: null,
     startDate: '',
     endDate: '',
+    workPeriodOverride: '',
     evidenceSources: [],
     weight: '',
     squatting: '',
