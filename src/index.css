@@ -24,6 +24,10 @@ body { font-family: 'Noto Sans KR', sans-serif; background: linear-gradient(135d
 @media (max-width: 1400px) { .main-content { grid-template-columns: 1fr; } }
 @media (max-width: 900px) { .app-layout { flex-direction: column; } .sidebar { width: 100%; flex-direction: row; flex-wrap: wrap; } .patient-list { max-height: 150px; } }
 
+/* 사이드바 토글 (데스크톱에서 숨김) */
+.sidebar-toggle { display: none; }
+.sidebar-overlay { display: none; }
+
 .panel { background: rgba(255,255,255,0.95); border-radius: 16px; padding: 20px; box-shadow: 0 8px 32px rgba(0,0,0,0.1); }
 .section { margin-bottom: 20px; }
 .section-title { font-size: 1rem; font-weight: 600; color: #1a1a2e; padding-bottom: 8px; margin-bottom: 12px; border-bottom: 2px solid #667eea; display: flex; align-items: center; gap: 8px; }
@@ -124,3 +128,51 @@ body { font-family: 'Noto Sans KR', sans-serif; background: linear-gradient(135d
 
 .batch-summary { background: #e7f5ff; border: 2px solid #339af0; border-radius: 8px; padding: 15px; margin: 15px 0; }
 .batch-summary h4 { color: #1971c2; margin-bottom: 10px; }
+
+/* 태블릿/대형 스마트폰 */
+@media (max-width: 768px) {
+  .app-layout { padding: 10px; gap: 10px; }
+  .sidebar-toggle { display: inline-flex; }
+  .sidebar {
+    position: fixed; top: 0; left: -280px; width: 260px; height: 100vh;
+    z-index: 1001; background: #f8f9fa; padding: 15px;
+    transition: left 0.3s ease; flex-direction: column; flex-wrap: nowrap;
+    box-shadow: 4px 0 20px rgba(0,0,0,0.15); overflow-y: auto;
+  }
+  .sidebar.sidebar-open { left: 0; }
+  .sidebar-overlay {
+    display: block; position: fixed; top: 0; left: 0;
+    width: 100%; height: 100%; z-index: 1000; background: rgba(0,0,0,0.4);
+  }
+  .patient-list { max-height: calc(100vh - 120px); }
+  .header { padding: 12px 15px; }
+  .header h1 { font-size: 1.1rem; }
+  .panel { padding: 15px; }
+  .form-row { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; }
+  .tab { padding: 8px 12px; font-size: 0.8rem; }
+  .result-value { font-size: 1.5rem; }
+}
+
+/* 스마트폰 */
+@media (max-width: 480px) {
+  .app-layout { padding: 6px; gap: 6px; }
+  .header { padding: 10px 12px; border-radius: 10px; margin-bottom: 8px; }
+  .header h1 { font-size: 0.95rem; }
+  .header-actions { gap: 4px; }
+  .header-actions .btn { padding: 6px 8px; font-size: 0.7rem; }
+  .panel { padding: 10px; border-radius: 10px; }
+  .section-title { font-size: 0.9rem; }
+  .form-row { grid-template-columns: 1fr; gap: 8px; }
+  .form-group input, .form-group select, .form-group textarea {
+    padding: 10px 12px; font-size: 16px;
+  }
+  .btn { padding: 10px 14px; font-size: 0.85rem; }
+  .tab { padding: 10px 14px; }
+  .diagnosis-card, .job-card { padding: 10px; }
+  .result-card { padding: 12px; }
+  .result-value { font-size: 1.3rem; }
+  .preview-section { font-size: 0.7rem; max-height: 200px; }
+  .modal { width: 95%; padding: 15px; }
+  .checkbox-label { font-size: 0.75rem; padding: 8px; }
+  .radio-label { padding: 8px 10px; font-size: 0.8rem; }
+}

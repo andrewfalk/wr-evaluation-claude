@@ -22,6 +22,7 @@ function App() {
   const [savedItems, setSavedItems] = useState([]);
   const [saveName, setSaveName] = useState('');
   const [errors, setErrors] = useState({});
+  const [showSidebar, setShowSidebar] = useState(false);
   
   const { presets, presetMeta, loading: presetLoading, error: presetError } = useJobPresets();
   
@@ -392,8 +393,10 @@ function App() {
 
   return (
     <div className="app-layout">
+      {/* 사이드바 오버레이 (모바일) */}
+      {showSidebar && <div className="sidebar-overlay" onClick={() => setShowSidebar(false)} />}
       {/* 사이드바 */}
-      <div className="sidebar">
+      <div className={`sidebar ${showSidebar ? 'sidebar-open' : ''}`}>
         <div className="sidebar-header">
           <h2>👥 환자 목록 ({patients.length})</h2>
           <div className="sidebar-actions">
@@ -406,7 +409,7 @@ function App() {
             <div
               key={p.id}
               className={`patient-item ${p.id === activeId ? 'active' : ''}`}
-              onClick={() => setActiveId(p.id)}
+              onClick={() => { setActiveId(p.id); setShowSidebar(false); }}
             >
               <div className="patient-item-name">{p.data.name || `환자 #${i + 1}`}</div>
               <div className="patient-item-info">{p.data.birthDate || '-'} | {p.data.diagnoses?.[0]?.name || '-'}</div>
@@ -425,6 +428,7 @@ function App() {
         <header className="header">
           <h1>🏥 근골격계 질환 업무관련성 평가</h1>
           <div className="header-actions">
+            <button className="btn btn-secondary btn-sm sidebar-toggle" onClick={() => setShowSidebar(v => !v)}>👥 환자 ({patients.length})</button>
             <button className="btn btn-secondary btn-sm" onClick={() => setShowSaveModal(true)}>💾 저장</button>
             <button className="btn btn-secondary btn-sm" onClick={() => setShowLoadModal(true)}>📂 불러오기</button>
             <button className="btn btn-success btn-sm" onClick={handleExcelSingle}>📊 Excel(현재)</button>
