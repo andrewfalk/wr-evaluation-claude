@@ -304,30 +304,14 @@ function App() {
     XLSX.writeFile(wb, `업무관련성평가_${formData.name || '미입력'}_${new Date().toISOString().split('T')[0]}.xlsx`);
   };
 
-  const handleExcelBatch = () => {
-    const wb = XLSX.utils.book_new();
-    const summaryData = [['번호', '이름', '생년월일', '재해일자', '나이', '진단명', '직종', '업무관련성(Min)', '업무관련성(Max)', '누적신체부담']];
+  const handleExcelBatch = async () => {
+    const JSZip = (await import('jszip')).default;
+    const zip = new JSZip();
 
-    patients.forEach((p, i) => {
+    patients.forEach(p => {
       const d = p.data;
-      const age = calculateAge(d.birthDate, d.injuryDate);
-      const rel = calculateWorkRelatedness(d.jobs, age);
-      const cum = evaluateCumulativeBurden(rel.min, rel.max);
-      summaryData.push([
-        i + 1, d.name, d.birthDate, d.injuryDate, age,
-        d.diagnoses.map(x => x.name).join(', '),
-        d.jobs.map(x => x.jobName).join(', '),
-        rel.min + '%', rel.max + '%', cum
-      ]);
-    });
-
-    const ws = XLSX.utils.aoa_to_sheet(summaryData);
-    ws['!cols'] = [{ wch: 5 }, { wch: 10 }, { wch: 12 }, { wch: 12 }, { wch: 5 }, { wch: 25 }, { wch: 20 }, { wch: 12 }, { wch: 12 }, { wch: 12 }];
-    XLSX.utils.book_append_sheet(wb, ws, '전체요약');
-
-    // 개별 환자 시트 - EMR 서식 적용
-    patients.forEach((p, i) => {
-      const { b5, b6, b7, b8, b9 } = generateEMRData(p.data);
+      const { b5, b6, b7, b8, b9 } = generateEMRData(d);
+      const wb = XLSX.utils.book_new();
       const wsData = [
         ['업무관련성특별진찰소견서(근골격계질병)', ''],
         ['항목', '내용'],
@@ -339,12 +323,22 @@ function App() {
         ['6.종합소견', b8],
         ['7.복귀 관련 고려사항', b9]
       ];
-      const ws2 = XLSX.utils.aoa_to_sheet(wsData);
-      ws2['!cols'] = [{ wch: 25 }, { wch: 80 }];
-      XLSX.utils.book_append_sheet(wb, ws2, `${i + 1}_${p.data.name || '미입력'}`.slice(0, 31));
+      const ws = XLSX.utils.aoa_to_sheet(wsData);
+      ws['!cols'] = [{ wch: 25 }, { wch: 80 }];
+      XLSX.utils.book_append_sheet(wb, ws, '업무관련성특별진찰소견서(근골격계질병)');
+
+      const fileName = `${d.name || '미입력'}_${d.injuryDate || '미입력'}.xlsx`;
+      const buf = XLSX.write(wb, { type: 'array', bookType: 'xlsx' });
+      zip.file(fileName, buf);
     });
 
-    XLSX.writeFile(wb, `업무관련성평가_일괄_${patients.length}명_${new Date().toISOString().split('T')[0]}.xlsx`);
+    const blob = await zip.generateAsync({ type: 'blob' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `업무관련성평가_${patients.length}명_${new Date().toISOString().split('T')[0]}.zip`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   const handlePDF = () => {
