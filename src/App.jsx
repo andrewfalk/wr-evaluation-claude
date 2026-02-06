@@ -125,11 +125,7 @@ function App() {
       const newPatient = mergedPatients[mergedPatients.length - stats.newPatients];
       if (newPatient) setActiveId(newPatient.id);
     }
-    // alert() 대신 setTimeout으로 포커스 복원
-    setTimeout(() => {
-      window.focus();
-      console.log(`Import 완료: 신규 환자 ${stats.newPatients}명, 추가 상병 ${stats.newDiagnoses}건, 추가 직종 ${stats.newJobs}건, 중복 ${stats.skipped}건`);
-    }, 100);
+    console.log(`Import 완료: 신규 환자 ${stats.newPatients}명, 추가 상병 ${stats.newDiagnoses}건, 추가 직종 ${stats.newJobs}건, 중복 ${stats.skipped}건`);
   };
 
   const validate = (data) => {
@@ -479,12 +475,12 @@ function App() {
                   <div className="form-row">
                     <div className="form-group">
                       <label>생년월일 *</label>
-                      <input type="date" value={formData.birthDate} onChange={e => handleInput('birthDate', e.target.value)} />
+                      <input type="date" max="9999-12-31" value={formData.birthDate} onChange={e => handleInput('birthDate', e.target.value)} />
                       {errors.birthDate && <div className="error-message">{errors.birthDate}</div>}
                     </div>
                     <div className="form-group">
                       <label>재해일자 *</label>
-                      <input type="date" value={formData.injuryDate} onChange={e => handleInput('injuryDate', e.target.value)} />
+                      <input type="date" max="9999-12-31" value={formData.injuryDate} onChange={e => handleInput('injuryDate', e.target.value)} />
                       {errors.injuryDate && <div className="error-message">{errors.injuryDate}</div>}
                     </div>
                     <div className="form-group"><label>만 나이</label><input value={calc.age ? `${calc.age}세` : '-'} readOnly /></div>
@@ -562,8 +558,8 @@ function App() {
                         </div>
                       </div>
                       <div className="form-row">
-                        <div className="form-group"><label>시작일</label><input type="date" value={job.startDate} onChange={e => handleJob(i, 'startDate', e.target.value)} /></div>
-                        <div className="form-group"><label>종료일</label><input type="date" value={job.endDate} onChange={e => handleJob(i, 'endDate', e.target.value)} /></div>
+                        <div className="form-group"><label>시작일</label><input type="date" max="9999-12-31" value={job.startDate} onChange={e => handleJob(i, 'startDate', e.target.value)} /></div>
+                        <div className="form-group"><label>종료일</label><input type="date" max="9999-12-31" value={job.endDate} onChange={e => handleJob(i, 'endDate', e.target.value)} /></div>
                         <div className="form-group">
                           <label>기간 {job.workPeriodOverride ? '(수동)' : '(자동)'}</label>
                           {(() => {
