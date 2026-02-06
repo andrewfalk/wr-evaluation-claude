@@ -139,7 +139,11 @@ function App() {
   };
 
   const handleSave = () => {
-    if (!saveName.trim()) return alert('저장명 필수');
+    if (!saveName.trim()) {
+      alert('저장명 필수');
+      document.body.click();
+      return;
+    }
     const item = { id: Date.now(), name: saveName, count: patients.length, savedAt: new Date().toISOString(), patients };
     const items = [...savedItems, item];
     setSavedItems(items);
@@ -147,6 +151,7 @@ function App() {
     setShowSaveModal(false);
     setSaveName('');
     alert('저장됨');
+    document.body.click();
   };
 
   const handleLoad = item => {
@@ -279,7 +284,11 @@ function App() {
   const handleExcelSingle = () => {
     const e = validate(formData);
     setErrors(e);
-    if (Object.keys(e).length) return alert('필수항목 확인');
+    if (Object.keys(e).length) {
+      alert('필수항목 확인');
+      document.body.click();
+      return;
+    }
 
     const { b5, b6, b7, b8, b9 } = generateEMRData(formData);
 
@@ -341,7 +350,11 @@ function App() {
   const handlePDF = () => {
     const e = validate(formData);
     setErrors(e);
-    if (Object.keys(e).length) return alert('필수항목 확인');
+    if (Object.keys(e).length) {
+      alert('필수항목 확인');
+      document.body.click();
+      return;
+    }
     
     const { age, bmi, relatedness: r, cumulativeBurden: c, jobBurdens: jb } = calc;
     const content = document.createElement('div');

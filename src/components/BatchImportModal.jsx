@@ -28,13 +28,18 @@ export function BatchImportModal({ onClose, onImport, existingPatients = [] }) {
         }
       } catch (err) {
         alert('파일 읽기 오류: ' + err.message);
+        document.body.click();
       }
     };
     reader.readAsArrayBuffer(f);
   };
 
   const handleImport = () => {
-    if (!preview || preview.length < 2) return alert('데이터가 없습니다');
+    if (!preview || preview.length < 2) {
+      alert('데이터가 없습니다');
+      document.body.click();
+      return;
+    }
 
     const headers = preview[0].map(h => (h || '').toString().toLowerCase());
     const findCol = (keywords) => headers.findIndex(h => keywords.some(k => h.includes(k)));
@@ -281,7 +286,9 @@ export function BatchImportModal({ onClose, onImport, existingPatients = [] }) {
     }
 
     if (stats.newPatients === 0 && stats.newDiagnoses === 0 && stats.newJobs === 0) {
-      return alert('가져올 데이터가 없습니다 (모두 중복)');
+      alert('가져올 데이터가 없습니다 (모두 중복)');
+      document.body.click();
+      return;
     }
 
     onImport(resultPatients, stats);
