@@ -12,9 +12,9 @@ export const createDiagnosis = () => ({
   confirmedLeft: '',
   assessmentRight: '',
   assessmentLeft: '',
-  reasonRight: '',
+  reasonRight: [],
   reasonRightOther: '',
-  reasonLeft: '',
+  reasonLeft: [],
   reasonLeftOther: ''
 });
 

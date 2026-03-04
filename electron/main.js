@@ -1,4 +1,4 @@
-const { app, BrowserWindow, Menu } = require('electron');
+const { app, BrowserWindow, Menu, ipcMain, dialog } = require('electron');
 const path = require('path');
 
 // Windows 7 호환성
@@ -72,7 +72,7 @@ function createWindow() {
             type: 'info',
             title: '버전 정보',
             message: '근골격계 질환 업무관련성 평가 프로그램',
-            detail: `버전: 1.5.0\n\n직업환경의학 전문의를 위한 업무관련성 평가 도구`
+            detail: `버전: 1.6.0\n\n직업환경의학 전문의를 위한 업무관련성 평가 도구`
           });
         }}
       ]
@@ -88,6 +88,18 @@ function createWindow() {
 }
 
 app.whenReady().then(createWindow);
+
+// IPC: native alert 대체 (Windows 7 포커스 문제 해결)
+ipcMain.handle('show-alert', async (_event, message) => {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    await dialog.showMessageBox(mainWindow, {
+      type: 'info',
+      title: '알림',
+      message: String(message),
+      buttons: ['확인']
+    });
+  }
+});
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {

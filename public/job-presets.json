@@ -1,169 +1,169 @@
 {
-  "version": "1.0.0",
-  "lastUpdated": "2026-01-28",
+  "version": "1.1.0",
+  "lastUpdated": "2026-02-20",
   "description": "근골격계 질환 업무관련성 평가 - 직종별 신체부담 표준값",
   "presets": [
     {
       "id": 1,
-      "jobName": "건설 현장 배근공",
+      "jobName": "내장목공",
       "category": "건설업",
-      "weight": 2500,
-      "squatting": 180,
-      "description": "철근 배근 작업",
-      "source": "산업안전보건연구원 2023"
+      "weight": 1234,
+      "squatting": 120,
+      "description": "가공, 몰딩, 걸레받이",
+      "source": "안산병원 자체협의"
     },
     {
       "id": 2,
-      "jobName": "건설 현장 목수",
+      "jobName": "미장공",
       "category": "건설업",
-      "weight": 2000,
+      "weight": 1920,
       "squatting": 150,
-      "description": "거푸집 설치 작업",
-      "source": "산업안전보건연구원 2023"
+      "description": "운반, 배합, 미장",
+      "source": "안산병원 자체협의"
     },
     {
       "id": 3,
-      "jobName": "건설 현장 미장공",
+      "jobName": "조적공",
       "category": "건설업",
-      "weight": 1500,
-      "squatting": 120,
-      "description": "미장 작업",
-      "source": "산업안전보건연구원 2023"
+      "weight": 2700,
+      "squatting": 150,
+      "description": "운반, 배합, 조적",
+      "source": "안산병원 자체협의"
     },
     {
       "id": 4,
-      "jobName": "타일공",
+      "jobName": "형틀목공",
       "category": "건설업",
-      "weight": 1000,
-      "squatting": 200,
+      "weight": 2800,
+      "squatting": 150,
       "description": "타일 시공",
-      "source": "산업안전보건연구원 2023"
+      "source": "안산병원 자체협의"
     },
     {
       "id": 5,
-      "jobName": "배관공",
+      "jobName": "비계공",
       "category": "건설업",
-      "weight": 1800,
-      "squatting": 140,
+      "weight": 1656,
+      "squatting": 90,
       "description": "배관 설치",
-      "source": "산업안전보건연구원 2023"
+      "source": "안산병원 자체협의"
     },
     {
       "id": 6,
-      "jobName": "전기공",
+      "jobName": "철근공",
       "category": "건설업",
-      "weight": 800,
-      "squatting": 100,
+      "weight": 1413,
+      "squatting": 150,
       "description": "전기 배선 작업",
-      "source": "산업안전보건연구원 2023"
+      "source": "안산병원 자체협의"
     },
     {
       "id": 7,
-      "jobName": "도장공",
+      "jobName": "배관공",
       "category": "건설업",
-      "weight": 600,
-      "squatting": 80,
+      "weight": 420,
+      "squatting": 120,
       "description": "페인트 도장 작업",
-      "source": "산업안전보건연구원 2023"
+      "source": "안산병원 자체협의"
     },
     {
       "id": 8,
-      "jobName": "자동차 조립공",
-      "category": "제조업",
-      "weight": 1200,
-      "squatting": 100,
+      "jobName": "용접공",
+      "category": "건설업",
+      "weight": 150,
+      "squatting": 150,
       "description": "자동차 조립 라인",
-      "source": "한국산업안전보건공단 2022"
+      "source": "안산병원 자체협의"
     },
     {
       "id": 9,
-      "jobName": "기계 조립원",
-      "category": "제조업",
-      "weight": 1500,
-      "squatting": 120,
+      "jobName": "가시설공",
+      "category": "건설업",
+      "weight": 150,
+      "squatting": 150,
       "description": "기계 부품 조립",
-      "source": "한국산업안전보건공단 2022"
+      "source": "안산병원 자체협의"
     },
     {
       "id": 10,
-      "jobName": "용접공",
-      "category": "제조업",
-      "weight": 800,
-      "squatting": 90,
+      "jobName": "타일공",
+      "category": "건설업",
+      "weight": 2000,
+      "squatting": 180,
       "description": "금속 용접 작업",
-      "source": "한국산업안전보건공단 2022"
+      "source": "안산병원 자체협의"
     },
     {
       "id": 11,
-      "jobName": "포장작업원",
-      "category": "제조업",
-      "weight": 300,
-      "squatting": 60,
+      "jobName": "견출공",
+      "category": "건설업",
+      "weight": 294,
+      "squatting": 150,
       "description": "제품 포장",
-      "source": "한국산업안전보건공단 2022"
+      "source": "안산병원 자체협의"
     },
     {
       "id": 12,
-      "jobName": "금형공",
-      "category": "제조업",
-      "weight": 1000,
-      "squatting": 70,
+      "jobName": "도장공",
+      "category": "건설업",
+      "weight": 100,
+      "squatting": 90,
       "description": "금형 제작 및 관리",
-      "source": "한국산업안전보건공단 2022"
+      "source": "안산병원 자체협의"
     },
     {
       "id": 13,
-      "jobName": "프레스 작업원",
-      "category": "제조업",
-      "weight": 1400,
-      "squatting": 50,
+      "jobName": "석공",
+      "category": "건설업",
+      "weight": 1530,
+      "squatting": 120,
       "description": "프레스 기계 조작",
-      "source": "한국산업안전보건공단 2022"
+      "source": "안산병원 자체협의"
     },
     {
       "id": 14,
-      "jobName": "물류 창고 작업자",
-      "category": "물류업",
-      "weight": 2200,
-      "squatting": 80,
+      "jobName": "전기공",
+      "category": "건설업",
+      "weight": 85.5,
+      "squatting": 120,
       "description": "물류 하역 및 적재",
-      "source": "물류산업진흥원 2023"
+      "source": "안산병원 자체협의"
     },
     {
       "id": 15,
-      "jobName": "택배 배송기사",
-      "category": "물류업",
-      "weight": 1800,
-      "squatting": 60,
+      "jobName": "철골공",
+      "category": "건설업",
+      "weight": 396,
+      "squatting": 150,
       "description": "택배 상하차 및 배송",
-      "source": "물류산업진흥원 2023"
+      "source": "안산병원 자체협의"
     },
     {
       "id": 16,
-      "jobName": "지게차 운전원",
-      "category": "물류업",
-      "weight": 500,
+      "jobName": "요양보호사",
+      "category": "사회복지업",
+      "weight": 720,
       "squatting": 30,
       "description": "지게차 운전 및 하역",
-      "source": "물류산업진흥원 2023"
+      "source": "안산병원 자체협의"
     },
     {
       "id": 17,
-      "jobName": "농업 노동자",
-      "category": "농업",
-      "weight": 1000,
-      "squatting": 240,
+      "jobName": "건물청소원",
+      "category": "서비스업",
+      "weight": 0,
+      "squatting": 30,
       "description": "농작물 재배",
-      "source": "농촌진흥청 2023"
+      "source": "안산병원 자체협의"
     },
     {
       "id": 18,
-      "jobName": "축산업 종사자",
-      "category": "농업",
-      "weight": 1200,
-      "squatting": 100,
+      "jobName": "단체급식조리원",
+      "category": "서비스업",
+      "weight": 66,
+      "squatting": 30,
       "description": "가축 사육 및 관리",
-      "source": "농촌진흥청 2023"
+      "source": "안산병원 자체협의"
     },
     {
       "id": 19,
@@ -172,7 +172,7 @@
       "weight": 500,
       "squatting": 90,
       "description": "건물 청소",
-      "source": "고용노동부 2022"
+      "source": "안산병원 자체협의"
     },
     {
       "id": 20,
@@ -181,7 +181,7 @@
       "weight": 600,
       "squatting": 100,
       "description": "환자 케어",
-      "source": "보건복지부 2023"
+      "source": "안산병원 자체협의"
     },
     {
       "id": 21,
@@ -190,7 +190,7 @@
       "weight": 400,
       "squatting": 30,
       "description": "음식 조리",
-      "source": "고용노동부 2022"
+      "source": "안산병원 자체협의"
     },
     {
       "id": 22,
@@ -199,7 +199,7 @@
       "weight": 200,
       "squatting": 40,
       "description": "미용 서비스",
-      "source": "고용노동부 2022"
+      "source": "안산병원 자체협의"
     },
     {
       "id": 23,
@@ -208,7 +208,7 @@
       "weight": 500,
       "squatting": 80,
       "description": "환자 간호 보조",
-      "source": "보건복지부 2023"
+      "source": "안산병원 자체협의"
     },
     {
       "id": 24,
@@ -217,7 +217,7 @@
       "weight": 400,
       "squatting": 60,
       "description": "물리치료 시행",
-      "source": "보건복지부 2023"
+      "source": "안산병원 자체협의"
     },
     {
       "id": 25,
@@ -226,7 +226,7 @@
       "weight": 1000,
       "squatting": 150,
       "description": "자동차 수리 및 정비",
-      "source": "한국산업안전보건공단 2022"
+      "source": "안산병원 자체협의"
     }
   ]
 }

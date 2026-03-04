@@ -108,11 +108,16 @@ export const getStatusText = (status) =>
 export const getKlgText = (klg) => 
   klg === 'N/A' ? '해당없음' : klg ? `${klg}등급` : '-';
 
-export const getReasonText = (reason, other) => {
-  if (reason === 'unrelated') return '신체부담과 관련없는 상병';
-  if (reason === 'mild') return '상병 미확인/연령대비 경미';
-  if (reason === 'delayed') return '업무중단 후 상당기간 경과';
-  if (reason === 'lowBurden') return '누적 신체부담 낮음';
-  if (reason === 'other') return `기타 (${other || ''})`;
-  return '-';
+export const getReasonText = (reasons, other) => {
+  // 하위 호환: 기존 문자열 형태도 처리
+  if (typeof reasons === 'string') reasons = reasons ? [reasons] : [];
+  if (!reasons || reasons.length === 0) return '-';
+  const reasonMap = {
+    unrelated: '신체부담과 관련없는 상병',
+    mild: '상병 미확인/연령대비 경미',
+    delayed: '업무중단 후 상당기간 경과',
+    lowBurden: '누적 신체부담 낮음',
+    other: `기타 (${other || ''})`
+  };
+  return reasons.map(r => reasonMap[r] || r).join('\n');
 };

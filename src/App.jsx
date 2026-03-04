@@ -138,10 +138,10 @@ function App() {
     return e;
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!saveName.trim()) {
-      alert('저장명 필수');
-      document.body.click();
+      if (window.electron?.showAlert) await window.electron.showAlert('저장명 필수');
+      else alert('저장명 필수');
       return;
     }
     const item = { id: Date.now(), name: saveName, count: patients.length, savedAt: new Date().toISOString(), patients };
@@ -150,8 +150,8 @@ function App() {
     localStorage.setItem('wrEvaluationSavedItems', JSON.stringify(items));
     setShowSaveModal(false);
     setSaveName('');
-    alert('저장됨');
-    document.body.click();
+    if (window.electron?.showAlert) await window.electron.showAlert('저장됨');
+    else alert('저장됨');
   };
 
   const handleLoad = item => {
@@ -195,19 +195,19 @@ function App() {
       t += `직력${i + 1}: ${j.jobName || '-'} | ${j.period} | ${j.weight || '-'}kg | ${j.squatting || '-'}분 | ${j.burden.level}\n`;
       if (checked.length > 0) t += `  보조: ${checked.join(', ')}\n`;
     });
-    t += `\n[업무관련성] ${rel.min}% ~ ${rel.max}%\n[누적신체부담] ${cum}\n\n[종합소견]\n`;
+    t += `\n[신체부담기여도] ${rel.min}% ~ ${rel.max}%\n[누적신체부담] ${cum}\n\n[종합소견]\n`;
     
     data.diagnoses.forEach((d, i) => {
       if (d.code || d.name) {
         t += `\n상병 #${i + 1}: ${d.code} ${d.name}\n`;
         if (d.side === 'right' || d.side === 'both') {
           t += `  우측: 상병 상태(${getStatusText(d.confirmedRight)}) / 업무관련성(${d.assessmentRight === 'high' ? '높음' : d.assessmentRight === 'low' ? '낮음' : '-'})`;
-          if (d.assessmentRight === 'low') t += ` - 업무관련성 평가 낮음 사유: ${getReasonText(d.reasonRight, d.reasonRightOther)}`;
+          if (d.assessmentRight === 'low') t += `\n    낮음 사유:\n    - ${getReasonText(d.reasonRight, d.reasonRightOther).split('\n').join('\n    - ')}`;
           t += `\n`;
         }
         if (d.side === 'left' || d.side === 'both') {
           t += `  좌측: 상병 상태(${getStatusText(d.confirmedLeft)}) / 업무관련성(${d.assessmentLeft === 'high' ? '높음' : d.assessmentLeft === 'low' ? '낮음' : '-'})`;
-          if (d.assessmentLeft === 'low') t += ` - 업무관련성 평가 낮음 사유: ${getReasonText(d.reasonLeft, d.reasonLeftOther)}`;
+          if (d.assessmentLeft === 'low') t += `\n    낮음 사유:\n    - ${getReasonText(d.reasonLeft, d.reasonLeftOther).split('\n').join('\n    - ')}`;
           t += `\n`;
         }
       }
@@ -237,11 +237,11 @@ function App() {
         let line = `${d.confirmedCode || ''} ${d.confirmedName || ''}`.trim();
         if (d.side === 'right' || d.side === 'both') {
           line += `\n  - 우측: 상병 상태(${getStatusText(d.confirmedRight)}) / 업무관련성(${d.assessmentRight === 'high' ? '높음' : d.assessmentRight === 'low' ? '낮음' : '-'})`;
-          if (d.assessmentRight === 'low') line += ` (업무관련성 평가 낮음 사유: ${getReasonText(d.reasonRight, d.reasonRightOther)})`;
+          if (d.assessmentRight === 'low') line += `\n    업무관련성 평가 낮음 사유:\n    - ${getReasonText(d.reasonRight, d.reasonRightOther).split('\n').join('\n    - ')}`;
         }
         if (d.side === 'left' || d.side === 'both') {
           line += `\n  - 좌측: 상병 상태(${getStatusText(d.confirmedLeft)}) / 업무관련성(${d.assessmentLeft === 'high' ? '높음' : d.assessmentLeft === 'low' ? '낮음' : '-'})`;
-          if (d.assessmentLeft === 'low') line += ` (업무관련성 평가 낮음 사유: ${getReasonText(d.reasonLeft, d.reasonLeftOther)})`;
+          if (d.assessmentLeft === 'low') line += `\n    업무관련성 평가 낮음 사유:\n    - ${getReasonText(d.reasonLeft, d.reasonLeftOther).split('\n').join('\n    - ')}`;
         }
         return line;
       }).join('\n\n');
@@ -250,30 +250,30 @@ function App() {
     const auxLabels = { stairs: '계단오르내리기', kneeTwist: '무릎 비틀림', startStop: '출발/정지 반복', tightSpace: '좁은 공간', kneeContact: '무릎 접촉/충격', jumpDown: '뛰어내리기' };
     const jobLines = jb.filter(j => j.jobName).map(j => {
       const checked = Object.entries(auxLabels).filter(([k]) => j[k]).map(([, v]) => v);
-      let line = `• ${j.jobName}: ${j.period} | 중량물 ${j.weight || '-'}kg | 쪼그려앉기 ${j.squatting || '-'}분 | 신체부담 ${j.burden.level}`;
+      let line = `- ${j.jobName}: ${j.period} | 중량물 ${j.weight || '-'}kg | 쪼그려앉기 ${j.squatting || '-'}분 | 신체부담 ${j.burden.level}`;
       if (checked.length > 0) line += `\n  보조: ${checked.join(', ')}`;
       return line;
     }).join('\n');
     const avgRel = ((+rel.min + +rel.max) / 2).toFixed(1);
-    const b6 = `[직업력]\n${jobLines}\n\n[업무관련성 평가]\n• 최소: ${rel.min}%\n• 최대: ${rel.max}%\n• 평균: ${avgRel}%\n\n[누적신체부담]\n• ${cum}`;
+    const b6 = `[직업력]\n${jobLines}\n\n[신체부담기여도 평가]\n- 최소: ${rel.min}%\n- 최대: ${rel.max}%\n- 평균: ${avgRel}%\n\n[누적신체부담]\n- ${cum}`;
 
     // B7: 개인적 요인
-    const b7 = `• 키: ${data.height || '-'}cm\n• 몸무게: ${data.weight || '-'}kg\n• BMI: ${bmi || '-'}\n• 나이: ${age || '-'}세 (재해일 기준)\n• 특이사항: ${data.specialNotes || '없음'}`;
+    const b7 = `- 키: ${data.height || '-'}cm\n- 몸무게: ${data.weight || '-'}kg\n- BMI: ${bmi || '-'}\n- 나이: ${age || '-'}세 (재해일 기준)\n- 특이사항: ${data.specialNotes || '없음'}`;
 
     // B8: 종합소견
     const diagSummary = data.diagnoses.filter(d => d.code || d.name).map((d, i) => {
       let summary = `#${i + 1}. ${d.code} ${d.name} (${getSideText(d.side)})`;
       if (d.side === 'right' || d.side === 'both') {
-        summary += `\n   우측 상병 상태: ${getStatusText(d.confirmedRight)} / 업무관련성: ${d.assessmentRight === 'high' ? '높음' : d.assessmentRight === 'low' ? '낮음' : '-'}`;
-        if (d.assessmentRight === 'low') summary += ` (업무관련성 평가 낮음 사유: ${getReasonText(d.reasonRight, d.reasonRightOther)})`;
+        summary += `\n   상병 상태: ${getStatusText(d.confirmedRight)} / 업무관련성: ${d.assessmentRight === 'high' ? '높음' : d.assessmentRight === 'low' ? '낮음' : '-'}`;
+        if (d.assessmentRight === 'low') summary += `\n   낮음 사유:\n   - ${getReasonText(d.reasonRight, d.reasonRightOther).split('\n').join('\n   - ')}`;
       }
       if (d.side === 'left' || d.side === 'both') {
-        summary += `\n   좌측 상병 상태: ${getStatusText(d.confirmedLeft)} / 업무관련성: ${d.assessmentLeft === 'high' ? '높음' : d.assessmentLeft === 'low' ? '낮음' : '-'}`;
-        if (d.assessmentLeft === 'low') summary += ` (업무관련성 평가 낮음 사유: ${getReasonText(d.reasonLeft, d.reasonLeftOther)})`;
+        summary += `\n   상병 상태: ${getStatusText(d.confirmedLeft)} / 업무관련성: ${d.assessmentLeft === 'high' ? '높음' : d.assessmentLeft === 'low' ? '낮음' : '-'}`;
+        if (d.assessmentLeft === 'low') summary += `\n   낮음 사유:\n   - ${getReasonText(d.reasonLeft, d.reasonLeftOther).split('\n').join('\n   - ')}`;
       }
       return summary;
     }).join('\n\n');
-    const b8 = `[상병별 종합소견]\n${diagSummary}\n\n[업무관련성 결론]\n• 업무관련성: ${rel.min}% ~ ${rel.max}%\n• 누적신체부담: ${cum}`;
+    const b8 = `[신체부담기여도]\n- 신체부담기여도: ${rel.min}% ~ ${rel.max}%\n- 누적신체부담: ${cum}\n\n[상병별 종합소견]\n${diagSummary}`;
 
     // B9: 복귀 관련 고려사항
     const b9 = data.returnConsiderations || '';
@@ -281,12 +281,12 @@ function App() {
     return { b5, b6, b7, b8, b9 };
   };
 
-  const handleExcelSingle = () => {
+  const handleExcelSingle = async () => {
     const e = validate(formData);
     setErrors(e);
     if (Object.keys(e).length) {
-      alert('필수항목 확인');
-      document.body.click();
+      if (window.electron?.showAlert) await window.electron.showAlert('필수항목 확인');
+      else alert('필수항목 확인');
       return;
     }
 
@@ -347,12 +347,12 @@ function App() {
     URL.revokeObjectURL(url);
   };
 
-  const handlePDF = () => {
+  const handlePDF = async () => {
     const e = validate(formData);
     setErrors(e);
     if (Object.keys(e).length) {
-      alert('필수항목 확인');
-      document.body.click();
+      if (window.electron?.showAlert) await window.electron.showAlert('필수항목 확인');
+      else alert('필수항목 확인');
       return;
     }
     
@@ -375,7 +375,7 @@ function App() {
         ${jb.filter(j => j.jobName).map(j => `<tr><td style="border:1px solid #ddd; padding:8px;">${j.jobName}</td><td style="border:1px solid #ddd; padding:8px;">${j.period}</td><td style="border:1px solid #ddd; padding:8px;">${j.weight || '-'}kg/일</td><td style="border:1px solid #ddd; padding:8px;">${j.squatting || '-'}분/일</td><td style="border:1px solid #ddd; padding:8px; font-weight:bold;">${j.burden.level}</td></tr>`).join('')}
       </table>
       <div style="background:#667eea; color:white; padding:15px; border-radius:8px; margin:20px 0; text-align:center;">
-        <div style="font-size:16px; font-weight:bold;">업무관련성: ${r.min}% ~ ${r.max}%</div>
+        <div style="font-size:16px; font-weight:bold;">신체부담기여도: ${r.min}% ~ ${r.max}%</div>
         <div style="margin-top:5px;">누적신체부담: ${c}</div>
       </div>
     `;
@@ -680,15 +680,31 @@ function App() {
                         {diag.assessmentRight === 'low' && (
                           <div className="form-group">
                             <label>업무관련성 평가 낮음 사유</label>
-                            <select value={diag.reasonRight} onChange={e => handleDiagnosis(i, 'reasonRight', e.target.value)}>
-                              <option value="">선택</option>
-                              <option value="unrelated">신체부담과 관련없는 상병</option>
-                              <option value="mild">상병 미확인/연령대비 경미</option>
-                              <option value="delayed">업무중단 후 상당기간 경과</option>
-                              <option value="lowBurden">누적 신체부담 낮음</option>
-                              <option value="other">기타</option>
-                            </select>
-                            {diag.reasonRight === 'other' && <input value={diag.reasonRightOther} onChange={e => handleDiagnosis(i, 'reasonRightOther', e.target.value)} placeholder="기타 사유" style={{ marginTop: 8 }} />}
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 4 }}>
+                              {[
+                                { value: 'unrelated', label: '신체부담과 관련없는 상병' },
+                                { value: 'mild', label: '상병 미확인/연령대비 경미' },
+                                { value: 'delayed', label: '업무중단 후 상당기간 경과' },
+                                { value: 'lowBurden', label: '누적 신체부담 낮음' },
+                                { value: 'other', label: '기타' }
+                              ].map(opt => (
+                                <label key={opt.value} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.85rem', cursor: 'pointer' }}>
+                                  <input
+                                    type="checkbox"
+                                    checked={(diag.reasonRight || []).includes(opt.value)}
+                                    onChange={() => {
+                                      const current = diag.reasonRight || [];
+                                      const next = current.includes(opt.value)
+                                        ? current.filter(v => v !== opt.value)
+                                        : [...current, opt.value];
+                                      handleDiagnosis(i, 'reasonRight', next);
+                                    }}
+                                  />
+                                  {opt.label}
+                                </label>
+                              ))}
+                            </div>
+                            {(diag.reasonRight || []).includes('other') && <input value={diag.reasonRightOther} onChange={e => handleDiagnosis(i, 'reasonRightOther', e.target.value)} placeholder="기타 사유" style={{ marginTop: 8 }} />}
                           </div>
                         )}
                       </div>
@@ -717,15 +733,31 @@ function App() {
                         {diag.assessmentLeft === 'low' && (
                           <div className="form-group">
                             <label>업무관련성 평가 낮음 사유</label>
-                            <select value={diag.reasonLeft} onChange={e => handleDiagnosis(i, 'reasonLeft', e.target.value)}>
-                              <option value="">선택</option>
-                              <option value="unrelated">신체부담과 관련없는 상병</option>
-                              <option value="mild">상병 미확인/연령대비 경미</option>
-                              <option value="delayed">업무중단 후 상당기간 경과</option>
-                              <option value="lowBurden">누적 신체부담 낮음</option>
-                              <option value="other">기타</option>
-                            </select>
-                            {diag.reasonLeft === 'other' && <input value={diag.reasonLeftOther} onChange={e => handleDiagnosis(i, 'reasonLeftOther', e.target.value)} placeholder="기타 사유" style={{ marginTop: 8 }} />}
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 4 }}>
+                              {[
+                                { value: 'unrelated', label: '신체부담과 관련없는 상병' },
+                                { value: 'mild', label: '상병 미확인/연령대비 경미' },
+                                { value: 'delayed', label: '업무중단 후 상당기간 경과' },
+                                { value: 'lowBurden', label: '누적 신체부담 낮음' },
+                                { value: 'other', label: '기타' }
+                              ].map(opt => (
+                                <label key={opt.value} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.85rem', cursor: 'pointer' }}>
+                                  <input
+                                    type="checkbox"
+                                    checked={(diag.reasonLeft || []).includes(opt.value)}
+                                    onChange={() => {
+                                      const current = diag.reasonLeft || [];
+                                      const next = current.includes(opt.value)
+                                        ? current.filter(v => v !== opt.value)
+                                        : [...current, opt.value];
+                                      handleDiagnosis(i, 'reasonLeft', next);
+                                    }}
+                                  />
+                                  {opt.label}
+                                </label>
+                              ))}
+                            </div>
+                            {(diag.reasonLeft || []).includes('other') && <input value={diag.reasonLeftOther} onChange={e => handleDiagnosis(i, 'reasonLeftOther', e.target.value)} placeholder="기타 사유" style={{ marginTop: 8 }} />}
                           </div>
                         )}
                       </div>
@@ -745,7 +777,7 @@ function App() {
           <div className="panel">
             <h2 className="section-title"><span className="section-icon">📊</span>결과</h2>
             <div className="result-card">
-              <h3>업무관련성</h3>
+              <h3>신체부담기여도</h3>
               <div className="result-value">{calc.relatedness.min}% ~ {calc.relatedness.max}%</div>
               <div className="result-sub">평균: {((+calc.relatedness.min + +calc.relatedness.max) / 2).toFixed(1)}%</div>
             </div>
