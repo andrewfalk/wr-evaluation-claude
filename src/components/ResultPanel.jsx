@@ -1,0 +1,34 @@
+export function ResultPanel({ calc, previewText }) {
+  return (
+    <div className="panel">
+      <h2 className="section-title"><span className="section-icon">📊</span>결과</h2>
+      <div className="result-card">
+        <h3>신체부담기여도</h3>
+        <div className="result-value">{calc.relatedness.min}% ~ {calc.relatedness.max}%</div>
+        <div className="result-sub">평균: {((+calc.relatedness.min + +calc.relatedness.max) / 2).toFixed(1)}%</div>
+      </div>
+      <div className="assessment-box">
+        <div className="assessment-row">
+          <span>누적신체부담</span>
+          <span className={`assessment-value ${calc.cumulativeBurden === '충분함' ? 'value-positive' : 'value-negative'}`}>{calc.cumulativeBurden}</span>
+        </div>
+        <div className="assessment-row">
+          <span>만 나이</span>
+          <span className="assessment-value value-neutral">{calc.age || '-'}세</span>
+        </div>
+      </div>
+      <h3 style={{ margin: '15px 0 10px', fontSize: '0.9rem' }}>직종별 신체부담</h3>
+      {calc.jobBurdens.filter(j => j.jobName).map((j) => (
+        <div key={j.id} className="assessment-box" style={{ marginBottom: 8, padding: 10 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.85rem' }}>{j.jobName}</span>
+            <span className={`job-badge badge-${j.burden.level === '고' ? 'high' : j.burden.level === '중상' ? 'medium-high' : j.burden.level === '중하' ? 'medium-low' : 'low'}`}>{j.burden.level}</span>
+          </div>
+          <div style={{ fontSize: '0.75rem', color: '#666', marginTop: 4 }}>{j.period} | {j.weight || '-'}kg | {j.squatting || '-'}분</div>
+        </div>
+      ))}
+      <h3 style={{ margin: '15px 0 10px', fontSize: '0.9rem' }}>미리보기</h3>
+      <div className="preview-section">{previewText}</div>
+    </div>
+  );
+}

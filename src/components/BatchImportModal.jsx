@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import * as XLSX from 'xlsx';
-import { createPatient, createDiagnosis } from '../utils/data';
+import { createPatient, createDiagnosis, createJob } from '../utils/data';
 import { formatWorkPeriod } from '../utils/calculations';
 
 export function BatchImportModal({ onClose, onImport, existingPatients = [] }) {
@@ -191,8 +191,7 @@ export function BatchImportModal({ onClose, onImport, existingPatients = [] }) {
         // 직업 추가
         if (rowJobName) {
           p.data.jobs = [{
-            ...p.data.jobs[0],
-            id: Date.now() + Math.random(),
+            ...createJob(),
             jobName: rowJobName,
             startDate: parseDate(getVal(row, 'jobStart')),
             endDate: parseDate(getVal(row, 'jobEnd')),
@@ -251,9 +250,8 @@ export function BatchImportModal({ onClose, onImport, existingPatients = [] }) {
           if (!existingJob) {
             // 직종이 다름 → 직종 추가
             existingPatient.data.jobs.push({
-              id: Date.now() + Math.random() + i,
+              ...createJob(),
               jobName: rowJobName,
-              presetId: null,
               startDate: parseDate(getVal(row, 'jobStart')),
               endDate: parseDate(getVal(row, 'jobEnd')),
               workPeriodOverride: (() => {
@@ -264,7 +262,6 @@ export function BatchImportModal({ onClose, onImport, existingPatients = [] }) {
                 const auto = formatWorkPeriod(parseDate(getVal(row, 'jobStart')), parseDate(getVal(row, 'jobEnd')));
                 return imported !== auto ? imported : '';
               })(),
-              evidenceSources: [],
               weight: getVal(row, 'jobWeight') ? String(getVal(row, 'jobWeight')) : '',
               squatting: getVal(row, 'jobSquat') ? String(getVal(row, 'jobSquat')) : '',
               stairs: parseBool(getVal(row, 'stairs')),

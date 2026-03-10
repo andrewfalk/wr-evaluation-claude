@@ -1,8 +1,11 @@
 const { app, BrowserWindow, Menu, ipcMain, dialog } = require('electron');
 const path = require('path');
+const os = require('os');
 
-// Windows 7 호환성
-app.commandLine.appendSwitch('disable-gpu');
+// Windows 7 (NT 6.1) GPU 호환성 문제 대응
+if (process.platform === 'win32' && os.release().startsWith('6.1')) {
+  app.commandLine.appendSwitch('disable-gpu');
+}
 
 let mainWindow;
 
@@ -89,7 +92,7 @@ function createWindow() {
 
 app.whenReady().then(createWindow);
 
-// IPC: native alert 대체 (Windows 7 포커스 문제 해결)
+// IPC: native alert/confirm 대체 (Windows 7 포커스 문제 해결)
 ipcMain.handle('show-alert', async (_event, message) => {
   if (mainWindow && !mainWindow.isDestroyed()) {
     await dialog.showMessageBox(mainWindow, {
@@ -99,6 +102,21 @@ ipcMain.handle('show-alert', async (_event, message) => {
       buttons: ['확인']
     });
   }
+});
+
+ipcMain.handle('show-confirm', async (_event, message) => {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    const { response } = await dialog.showMessageBox(mainWindow, {
+      type: 'question',
+      title: '확인',
+      message: String(message),
+      buttons: ['확인', '취소'],
+      defaultId: 0,
+      cancelId: 1
+    });
+    return response === 0;
+  }
+  return false;
 });
 
 app.on('window-all-closed', () => {

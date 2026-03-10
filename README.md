@@ -47,14 +47,18 @@ wr-evaluation-v2/
 │   ├── App.jsx               # 메인 앱 컴포넌트
 │   ├── index.css             # 스타일
 │   ├── components/
-│   │   ├── PresetSearch.jsx  # Preset 검색 컴포넌트
-│   │   └── BatchImportModal.jsx  # 일괄 Import 모달
+│   │   ├── PresetSearch.jsx    # Preset 검색 컴포넌트
+│   │   ├── BatchImportModal.jsx # 일괄 Import 모달
+│   │   ├── BasicInfoTab.jsx    # 기본정보 탭
+│   │   ├── DiagnosisTab.jsx    # 진단 탭
+│   │   ├── JobTab.jsx          # 직종 탭
+│   │   ├── AssessmentTab.jsx   # 평가 탭
+│   │   └── ResultPanel.jsx     # 결과 패널
 │   ├── hooks/
 │   │   └── useJobPresets.js  # Preset 로딩 훅
 │   └── utils/
 │       ├── calculations.js   # 계산 로직
-│       ├── data.js           # 데이터 생성 함수
-│       └── platform.js       # 플랫폼 감지
+│       └── data.js           # 데이터 생성 함수 및 상수
 ├── public/
 │   └── job-presets.json      # 직종 Preset 데이터
 ├── electron/
@@ -105,9 +109,22 @@ npm run electron:build
 
 - React 18
 - Vite
-- Electron 22 (Windows 7 호환)
+- Electron 21 (Windows 7 호환)
 - SheetJS (xlsx)
 - html2pdf.js
+
+## 📝 v1.6.0 변경사항
+
+- confirm/alert → Electron IPC `dialog.showMessageBox` 전환 (포커스 문제 해결)
+- App.jsx 컴포넌트 분리 (865→430줄): BasicInfoTab, DiagnosisTab, JobTab, AssessmentTab, ResultPanel
+- 계산 로직 통합 (`computePatientCalc`) — 중복 계산 제거
+- 데이터 팩토리 패턴 적용 (`createJob`, `createDiagnosis`, `createPatient`)
+- ID 생성 방식 개선: `Date.now()+Math.random()` → `crypto.randomUUID()`
+- `disable-gpu` 스위치 Windows 7 조건부 적용 (Windows 10/11 GPU 가속 유지)
+- 배치 Excel 내보내기 유효성 검사 추가
+- 입력 수정 시 오류 메시지 자동 초기화
+- 중복 상수 추출 (`LOW_REASON_OPTIONS`, `AUX_LABELS`)
+- 미사용 코드 제거 (`platform.js`)
 
 ## 📄 라이선스
 

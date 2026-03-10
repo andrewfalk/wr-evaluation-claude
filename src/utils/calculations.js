@@ -98,6 +98,20 @@ export function evaluateCumulativeBurden(min, max) {
   return ((parseFloat(min) + parseFloat(max)) / 2) >= 50 ? '충분함' : '불충분함';
 }
 
+// 환자 데이터로부터 전체 계산 결과를 한번에 산출
+export function computePatientCalc(data) {
+  const age = calculateAge(data.birthDate, data.injuryDate);
+  const bmi = calculateBMI(data.height, data.weight);
+  const relatedness = calculateWorkRelatedness(data.jobs, age);
+  const cumulativeBurden = evaluateCumulativeBurden(relatedness.min, relatedness.max);
+  const jobBurdens = data.jobs.map(j => ({
+    ...j,
+    burden: calculatePhysicalBurden(j.weight, j.squatting),
+    period: getEffectiveWorkPeriodText(j)
+  }));
+  return { age, bmi, relatedness, cumulativeBurden, jobBurdens };
+}
+
 // 텍스트 헬퍼
 export const getSideText = (side) => 
   side === 'right' ? '우측' : side === 'left' ? '좌측' : side === 'both' ? '양측' : '-';

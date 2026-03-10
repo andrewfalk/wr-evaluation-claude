@@ -1,6 +1,6 @@
 {
   "name": "wr-evaluation",
-  "version": "1.5.0",
+  "version": "1.6.0",
   "description": "근골격계 질환 업무관련성 평가 프로그램",
   "main": "electron/main.js",
   "scripts": {

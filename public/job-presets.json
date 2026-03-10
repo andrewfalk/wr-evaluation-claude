@@ -164,69 +164,7 @@
       "squatting": 30,
       "description": "가축 사육 및 관리",
       "source": "안산병원 자체협의"
-    },
-    {
-      "id": 19,
-      "jobName": "청소원",
-      "category": "서비스업",
-      "weight": 500,
-      "squatting": 90,
-      "description": "건물 청소",
-      "source": "안산병원 자체협의"
-    },
-    {
-      "id": 20,
-      "jobName": "요양보호사",
-      "category": "서비스업",
-      "weight": 600,
-      "squatting": 100,
-      "description": "환자 케어",
-      "source": "안산병원 자체협의"
-    },
-    {
-      "id": 21,
-      "jobName": "조리사",
-      "category": "서비스업",
-      "weight": 400,
-      "squatting": 30,
-      "description": "음식 조리",
-      "source": "안산병원 자체협의"
-    },
-    {
-      "id": 22,
-      "jobName": "미용사",
-      "category": "서비스업",
-      "weight": 200,
-      "squatting": 40,
-      "description": "미용 서비스",
-      "source": "안산병원 자체협의"
-    },
-    {
-      "id": 23,
-      "jobName": "간호조무사",
-      "category": "의료",
-      "weight": 500,
-      "squatting": 80,
-      "description": "환자 간호 보조",
-      "source": "안산병원 자체협의"
-    },
-    {
-      "id": 24,
-      "jobName": "물리치료사",
-      "category": "의료",
-      "weight": 400,
-      "squatting": 60,
-      "description": "물리치료 시행",
-      "source": "안산병원 자체협의"
-    },
-    {
-      "id": 25,
-      "jobName": "자동차 정비사",
-      "category": "정비업",
-      "weight": 1000,
-      "squatting": 150,
-      "description": "자동차 수리 및 정비",
-      "source": "안산병원 자체협의"
     }
+    
   ]
 }

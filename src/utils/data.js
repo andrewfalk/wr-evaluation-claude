@@ -1,6 +1,6 @@
 // 진단 데이터 생성
 export const createDiagnosis = () => ({
-  id: Date.now() + Math.random(),
+  id: crypto.randomUUID(),
   code: '',
   name: '',
   side: '',
@@ -18,6 +18,25 @@ export const createDiagnosis = () => ({
   reasonLeftOther: ''
 });
 
+// 직종 데이터 생성
+export const createJob = () => ({
+  id: crypto.randomUUID(),
+  jobName: '',
+  presetId: null,
+  startDate: '',
+  endDate: '',
+  workPeriodOverride: '',
+  evidenceSources: [],
+  weight: '',
+  squatting: '',
+  stairs: false,
+  kneeTwist: false,
+  startStop: false,
+  tightSpace: false,
+  kneeContact: false,
+  jumpDown: false
+});
+
 // 환자 데이터 생성
 export const createPatientData = () => ({
   name: '',
@@ -32,29 +51,13 @@ export const createPatientData = () => ({
   evaluationDate: new Date().toISOString().split('T')[0],
   specialNotes: '',
   diagnoses: [createDiagnosis()],
-  jobs: [{
-    id: Date.now() + Math.random(),
-    jobName: '',
-    presetId: null,
-    startDate: '',
-    endDate: '',
-    workPeriodOverride: '',
-    evidenceSources: [],
-    weight: '',
-    squatting: '',
-    stairs: false,
-    kneeTwist: false,
-    startStop: false,
-    tightSpace: false,
-    kneeContact: false,
-    jumpDown: false
-  }],
+  jobs: [createJob()],
   returnConsiderations: ''
 });
 
 // 환자 생성
 export const createPatient = () => ({
-  id: Date.now() + Math.random(),
+  id: crypto.randomUUID(),
   data: createPatientData()
 });
 
@@ -67,6 +70,25 @@ export const KLG_OPTIONS = [
   { value: '3', label: '3등급' },
   { value: '4', label: '4등급' }
 ];
+
+// 업무관련성 평가 낮음 사유 옵션
+export const LOW_REASON_OPTIONS = [
+  { value: 'unrelated', label: '신체부담과 관련없는 상병' },
+  { value: 'mild', label: '상병 미확인/연령대비 경미' },
+  { value: 'delayed', label: '업무중단 후 상당기간 경과' },
+  { value: 'lowBurden', label: '누적 신체부담 낮음' },
+  { value: 'other', label: '기타' }
+];
+
+// 보조변수 라벨
+export const AUX_LABELS = {
+  stairs: '계단오르내리기',
+  kneeTwist: '무릎 비틀림',
+  startStop: '출발/정지 반복',
+  tightSpace: '좁은 공간',
+  kneeContact: '무릎 접촉/충격',
+  jumpDown: '뛰어내리기'
+};
 
 // Fallback Presets
 export const FALLBACK_PRESETS = [
