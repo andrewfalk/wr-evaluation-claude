@@ -82,7 +82,7 @@ body { font-family: 'Noto Sans KR', sans-serif; background: linear-gradient(135d
 .value-negative { background: #ffe0e0; color: #c92a2a; }
 .value-neutral { background: #e7f5ff; color: #1971c2; }
 
-.preview-section { background: #1a1a2e; color: #e0e0e0; border-radius: 10px; padding: 15px; font-family: monospace; font-size: 0.8rem; max-height: 300px; overflow-y: auto; white-space: pre-wrap; }
+.preview-section { background: #1a1a2e; color: #e0e0e0; border-radius: 10px; padding: 15px; font-family: monospace; font-size: 0.8rem; height: calc(100vh - 480px); min-height: 150px; overflow-y: auto; white-space: pre-wrap; resize: vertical; }
 
 .tabs { display: flex; gap: 4px; margin-bottom: 15px; border-bottom: 2px solid #e9ecef; padding-bottom: 8px; flex-wrap: wrap; }
 .tab { padding: 8px 16px; border: none; background: transparent; cursor: pointer; font-size: 0.85rem; font-weight: 500; color: #666; font-family: inherit; }
@@ -171,7 +171,7 @@ body { font-family: 'Noto Sans KR', sans-serif; background: linear-gradient(135d
   .diagnosis-card, .job-card { padding: 10px; }
   .result-card { padding: 12px; }
   .result-value { font-size: 1.3rem; }
-  .preview-section { font-size: 0.7rem; max-height: 200px; }
+  .preview-section { font-size: 0.7rem; height: 200px; min-height: 100px; }
   .modal { width: 95%; padding: 15px; }
   .checkbox-label { font-size: 0.75rem; padding: 8px; }
   .radio-label { padding: 8px 10px; font-size: 0.8rem; }
