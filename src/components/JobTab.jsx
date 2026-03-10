@@ -9,7 +9,7 @@ export function JobTab({ formData, handleJob, handlePresetSelect, addJob, remove
       {errors.jobs && <div className="error-message">{errors.jobs}</div>}
       {formData.jobs.map((job, i) => {
         const b = calculatePhysicalBurden(job.weight, job.squatting);
-        const bc = b.level === '고' ? 'badge-high' : b.level === '중상' ? 'badge-medium-high' : b.level === '중하' ? 'badge-medium-low' : 'badge-low';
+        const bc = b.level === '고도' ? 'badge-high' : b.level === '중등도상' ? 'badge-medium-high' : b.level === '중등도하' ? 'badge-medium-low' : 'badge-low';
         return (
           <div key={job.id} className="job-card">
             <div className="job-card-header">

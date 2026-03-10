@@ -22,7 +22,7 @@ export function ResultPanel({ calc, previewText }) {
         <div key={j.id} className="assessment-box" style={{ marginBottom: 8, padding: 10 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span style={{ fontSize: '0.85rem' }}>{j.jobName}</span>
-            <span className={`job-badge badge-${j.burden.level === '고' ? 'high' : j.burden.level === '중상' ? 'medium-high' : j.burden.level === '중하' ? 'medium-low' : 'low'}`}>{j.burden.level}</span>
+            <span className={`job-badge badge-${j.burden.level === '고도' ? 'high' : j.burden.level === '중등도상' ? 'medium-high' : j.burden.level === '중등도하' ? 'medium-low' : 'low'}`}>{j.burden.level}</span>
           </div>
           <div style={{ fontSize: '0.75rem', color: '#666', marginTop: 4 }}>{j.period} | {j.weight || '-'}kg | {j.squatting || '-'}분</div>
         </div>

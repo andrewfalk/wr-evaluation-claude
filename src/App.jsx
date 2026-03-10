@@ -180,6 +180,11 @@ function App() {
       t += `직력${i + 1}: ${j.jobName || '-'} | ${j.period} | ${j.weight || '-'}kg | ${j.squatting || '-'}분 | ${j.burden.level}\n`;
       if (checked.length > 0) t += `  보조: ${checked.join(', ')}\n`;
     });
+    t += `\n참고) 신체부담 정도는 다음의 4단계로 구분함.\n`;
+    t += `1) 고도: 퇴행성 변화를 유발 또는 가속하는 것이 확실함(definite)\n`;
+    t += `2) 중등도상: 퇴행성 변화를 유발 또는 가속하기에 충분함(probable)\n`;
+    t += `3) 중등도하: 퇴행성 변화를 유발 또는 가속할 가능성이 있음(possible)\n`;
+    t += `4) 경도: 퇴행성 변화를 유발 또는 가속하기 어려움(no related)\n`;
     t += `\n[신체부담기여도] ${r.min}% ~ ${r.max}%\n[누적신체부담] ${cum}\n\n[종합소견]\n`;
 
     data.diagnoses.forEach((d, i) => {
@@ -230,7 +235,8 @@ function App() {
       return line;
     }).join('\n');
     const avgRel = ((+rel.min + +rel.max) / 2).toFixed(1);
-    const b6 = `[직업력]\n${jobLines}\n\n[신체부담기여도 평가]\n- 최소: ${rel.min}%\n- 최대: ${rel.max}%\n- 평균: ${avgRel}%\n\n[누적신체부담]\n- ${cum}`;
+    const burdenNote = `참고) 신체부담 정도는 다음의 4단계로 구분함.\n1) 고도: 퇴행성 변화를 유발 또는 가속하는 것이 확실함(definite)\n2) 중등도상: 퇴행성 변화를 유발 또는 가속하기에 충분함(probable)\n3) 중등도하: 퇴행성 변화를 유발 또는 가속할 가능성이 있음(possible)\n4) 경도: 퇴행성 변화를 유발 또는 가속하기 어려움(no related)`;
+    const b6 = `[직업력]\n${jobLines}\n\n${burdenNote}\n\n[신체부담기여도 평가]\n- 최소: ${rel.min}%\n- 최대: ${rel.max}%\n- 평균: ${avgRel}%\n\n[누적신체부담]\n- ${cum}`;
 
     // B7: 개인적 요인
     const b7 = `- 키: ${data.height || '-'}cm\n- 몸무게: ${data.weight || '-'}kg\n- BMI: ${bmi || '-'}\n- 나이: ${age || '-'}세 (재해일 기준)\n- 특이사항: ${data.specialNotes || '없음'}`;
@@ -362,6 +368,13 @@ function App() {
         <tr style="background:#f5f5f5;"><th style="border:1px solid #ddd; padding:8px;">직종</th><th style="border:1px solid #ddd; padding:8px;">근무기간</th><th style="border:1px solid #ddd; padding:8px;">중량물</th><th style="border:1px solid #ddd; padding:8px;">쪼그려앉기</th><th style="border:1px solid #ddd; padding:8px;">신체부담</th></tr>
         ${jb.filter(j => j.jobName).map(j => `<tr><td style="border:1px solid #ddd; padding:8px;">${j.jobName}</td><td style="border:1px solid #ddd; padding:8px;">${j.period}</td><td style="border:1px solid #ddd; padding:8px;">${j.weight || '-'}kg/일</td><td style="border:1px solid #ddd; padding:8px;">${j.squatting || '-'}분/일</td><td style="border:1px solid #ddd; padding:8px; font-weight:bold;">${j.burden.level}</td></tr>`).join('')}
       </table>
+      <div style="font-size:11px; color:#555; margin-bottom:15px; line-height:1.6;">
+        <b>참고)</b> 신체부담 정도는 다음의 4단계로 구분함.<br/>
+        1) 고도: 퇴행성 변화를 유발 또는 가속하는 것이 확실함(definite)<br/>
+        2) 중등도상: 퇴행성 변화를 유발 또는 가속하기에 충분함(probable)<br/>
+        3) 중등도하: 퇴행성 변화를 유발 또는 가속할 가능성이 있음(possible)<br/>
+        4) 경도: 퇴행성 변화를 유발 또는 가속하기 어려움(no related)
+      </div>
       <div style="background:#667eea; color:white; padding:15px; border-radius:8px; margin:20px 0; text-align:center;">
         <div style="font-size:16px; font-weight:bold;">신체부담기여도: ${r.min}% ~ ${r.max}%</div>
         <div style="margin-top:5px;">누적신체부담: ${c}</div>
