@@ -7,7 +7,14 @@ body { font-family: 'Noto Sans KR', sans-serif; background: linear-gradient(135d
 .sidebar-header h2 { font-size: 1rem; color: #1a1a2e; margin-bottom: 10px; }
 .sidebar-actions { display: flex; gap: 5px; flex-wrap: wrap; }
 .sidebar-actions .btn { flex: 1; font-size: 0.75rem; padding: 8px 5px; }
-.patient-list { background: rgba(255,255,255,0.95); border-radius: 12px; padding: 10px; flex: 1; overflow-y: auto; max-height: calc(100vh - 250px); }
+.sidebar-filter { display: flex; flex-direction: column; gap: 5px; padding: 0 15px 10px; }
+.sidebar-filter input, .sidebar-filter select { width: 100%; padding: 6px 8px; border: 1px solid #ddd; border-radius: 6px; font-size: 0.8rem; background: white; }
+.sidebar-filter input:focus, .sidebar-filter select:focus { outline: none; border-color: #667eea; }
+.sidebar-filter-row { display: flex; gap: 5px; }
+.sidebar-filter-row select { flex: 1; }
+.status-dot { margin-right: 4px; font-size: 0.7rem; }
+.status-dot.complete { color: #51cf66; }
+.patient-list { background: rgba(255,255,255,0.95); border-radius: 12px; padding: 10px; flex: 1; overflow-y: auto; max-height: calc(100vh - 320px); }
 .patient-item { padding: 12px; border-radius: 8px; cursor: pointer; margin-bottom: 5px; border: 2px solid transparent; transition: all 0.2s; }
 .patient-item:hover { background: #f0f0f0; }
 .patient-item.active { border-color: #667eea; background: rgba(102,126,234,0.1); }
@@ -144,7 +151,7 @@ body { font-family: 'Noto Sans KR', sans-serif; background: linear-gradient(135d
     display: block; position: fixed; top: 0; left: 0;
     width: 100%; height: 100%; z-index: 1000; background: rgba(0,0,0,0.4);
   }
-  .patient-list { max-height: calc(100vh - 120px); }
+  .patient-list { max-height: calc(100vh - 200px); }
   .header { padding: 12px 15px; }
   .header h1 { font-size: 1.1rem; }
   .panel { padding: 15px; }

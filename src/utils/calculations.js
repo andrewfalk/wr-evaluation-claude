@@ -135,3 +135,22 @@ export const getReasonText = (reasons, other) => {
   };
   return reasons.map(r => reasonMap[r] || r).join('\n');
 };
+
+// 종합소견 완료 여부 판정
+export function isAssessmentComplete(data) {
+  if (!data.diagnoses?.length) return false;
+  return data.diagnoses.every(dx => {
+    if (!dx.side) return false;
+    const needRight = dx.side === 'right' || dx.side === 'both';
+    const needLeft = dx.side === 'left' || dx.side === 'both';
+    if (needRight) {
+      if (!dx.confirmedRight || !dx.assessmentRight) return false;
+      if (dx.assessmentRight === 'low' && (!dx.reasonRight?.length)) return false;
+    }
+    if (needLeft) {
+      if (!dx.confirmedLeft || !dx.assessmentLeft) return false;
+      if (dx.assessmentLeft === 'low' && (!dx.reasonLeft?.length)) return false;
+    }
+    return true;
+  });
+}

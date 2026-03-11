@@ -16,7 +16,7 @@ function SideAssessment({ diag, index, side, handleDiagnosis }) {
       <div className="form-row">
         <div className="form-group">
           <label>상병 상태</label>
-          <select value={diag[confirmedKey]} onChange={e => handleDiagnosis(index, confirmedKey, e.target.value)}>
+          <select value={diag[confirmedKey]} onChange={e => handleDiagnosis(index, confirmedKey, e.target.value)} title="해당 부위 상병의 확인/미확인 판정">
             <option value="">선택</option>
             <option value="confirmed">확인</option>
             <option value="unconfirmed">미확인</option>
@@ -24,7 +24,7 @@ function SideAssessment({ diag, index, side, handleDiagnosis }) {
         </div>
         <div className="form-group">
           <label>업무관련성</label>
-          <select value={diag[assessmentKey]} onChange={e => handleDiagnosis(index, assessmentKey, e.target.value)}>
+          <select value={diag[assessmentKey]} onChange={e => handleDiagnosis(index, assessmentKey, e.target.value)} title="해당 부위의 업무관련성 높음/낮음 판정">
             <option value="">선택</option>
             <option value="high">높음</option>
             <option value="low">낮음</option>
@@ -105,7 +105,7 @@ export function AssessmentTab({ formData, handleDiagnosis, handleInput }) {
       ))}
       <div className="section" style={{ marginTop: 20 }}>
         <h2 className="section-title"><span className="section-icon">💼</span>복귀 고려사항</h2>
-        <textarea rows="3" style={{ width: '100%' }} value={formData.returnConsiderations} onChange={e => handleInput('returnConsiderations', e.target.value)} placeholder="업무 복귀 시 고려사항..." />
+        <textarea rows="3" style={{ width: '100%' }} value={formData.returnConsiderations} onChange={e => handleInput('returnConsiderations', e.target.value)} placeholder="업무 복귀 시 고려사항..." title="업무 복귀 시 고려해야 할 사항 입력" />
       </div>
     </div>
   );

@@ -7,7 +7,7 @@ export function DiagnosisTab({ formData, handleDiagnosis, addDiagnosis, removeDi
         <div key={diag.id} className="diagnosis-card">
           <div className="diagnosis-card-header">
             <span className="diagnosis-card-title">상병 #{i + 1}</span>
-            {formData.diagnoses.length > 1 && <button className="btn btn-danger btn-xs" onClick={() => removeDiagnosis(i)}>삭제</button>}
+            {formData.diagnoses.length > 1 && <button className="btn btn-danger btn-xs" onClick={() => removeDiagnosis(i)} title="이 상병 삭제">삭제</button>}
           </div>
           <div className="form-row">
             <div className="form-group"><label>진단코드 *</label><input value={diag.code} onChange={e => handleDiagnosis(i, 'code', e.target.value)} placeholder="M17.0" /></div>
@@ -26,7 +26,7 @@ export function DiagnosisTab({ formData, handleDiagnosis, addDiagnosis, removeDi
           </div>
         </div>
       ))}
-      <button className="btn btn-primary btn-sm" onClick={addDiagnosis}>+ 상병 추가</button>
+      <button className="btn btn-primary btn-sm" onClick={addDiagnosis} title="새 진단 상병 추가">+ 상병 추가</button>
     </div>
   );
 }

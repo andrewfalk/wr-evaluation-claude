@@ -15,8 +15,8 @@ export function JobTab({ formData, handleJob, handlePresetSelect, addJob, remove
             <div className="job-card-header">
               <span style={{ fontWeight: 600 }}>직력 {i + 1}</span>
               <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                <span className={`job-badge ${bc}`}>{b.level} ({b.minScore}~{b.maxScore})</span>
-                {formData.jobs.length > 1 && <button className="btn btn-danger btn-xs" onClick={() => removeJob(i)}>삭제</button>}
+                <span className={`job-badge ${bc}`} title="현재 중량물/쪼그려앉기 기준 신체부담정도">{b.level} ({b.minScore}~{b.maxScore})</span>
+                {formData.jobs.length > 1 && <button className="btn btn-danger btn-xs" onClick={() => removeJob(i)} title="이 직종 삭제">삭제</button>}
               </div>
             </div>
             <div className="form-row">
@@ -29,7 +29,7 @@ export function JobTab({ formData, handleJob, handlePresetSelect, addJob, remove
               <div className="form-group"><label>시작일</label><input type="date" max="9999-12-31" value={job.startDate} onChange={e => handleJob(i, 'startDate', e.target.value)} /></div>
               <div className="form-group"><label>종료일</label><input type="date" max="9999-12-31" value={job.endDate} onChange={e => handleJob(i, 'endDate', e.target.value)} /></div>
               <div className="form-group">
-                <label>기간 {job.workPeriodOverride ? '(수동)' : '(자동)'}</label>
+                <label title="비워두면 시작일~종료일로 자동계산">기간 {job.workPeriodOverride ? '(수동)' : '(자동)'}</label>
                 {(() => {
                   const auto = formatWorkPeriod(job.startDate, job.endDate);
                   const src = job.workPeriodOverride || auto;
@@ -59,8 +59,8 @@ export function JobTab({ formData, handleJob, handlePresetSelect, addJob, remove
               </div>
             </div>
             <div className="form-row">
-              <div className="form-group"><label>쪼그려앉기 (분/일)</label><input type="number" value={job.squatting} onChange={e => handleJob(i, 'squatting', e.target.value)} min="0" /></div>
-              <div className="form-group"><label>중량물 (kg/일)</label><input type="number" value={job.weight} onChange={e => handleJob(i, 'weight', e.target.value)} min="0" /></div>
+              <div className="form-group"><label>쪼그려앉기 (분/일)</label><input type="number" value={job.squatting} onChange={e => handleJob(i, 'squatting', e.target.value)} min="0" title="하루 평균 쪼그려앉기/무릎꿇기 시간" /></div>
+              <div className="form-group"><label>중량물 (kg/일)</label><input type="number" value={job.weight} onChange={e => handleJob(i, 'weight', e.target.value)} min="0" title="하루 평균 취급 중량" /></div>
             </div>
             <div className="form-row" style={{ flexWrap: 'wrap', gap: '8px 16px', marginTop: 4 }}>
               <label className="checkbox-label"><input type="checkbox" checked={job.stairs} onChange={e => handleJob(i, 'stairs', e.target.checked)} /><span>계단오르내리기</span></label>
@@ -73,7 +73,7 @@ export function JobTab({ formData, handleJob, handlePresetSelect, addJob, remove
           </div>
         );
       })}
-      <button className="btn btn-primary btn-sm" onClick={addJob}>+ 직종 추가</button>
+      <button className="btn btn-primary btn-sm" onClick={addJob} title="새 직종 추가">+ 직종 추가</button>
     </div>
   );
 }

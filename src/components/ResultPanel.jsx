@@ -2,14 +2,14 @@ export function ResultPanel({ calc, previewText }) {
   return (
     <div className="panel">
       <h2 className="section-title"><span className="section-icon">📊</span>결과</h2>
-      <div className="result-card">
+      <div className="result-card" title="직종별 신체부담 합산 기여도 (최소~최대%)">
         <h3>신체부담기여도</h3>
         <div className="result-value">{calc.relatedness.min}% ~ {calc.relatedness.max}%</div>
         <div className="result-sub">평균: {((+calc.relatedness.min + +calc.relatedness.max) / 2).toFixed(1)}%</div>
       </div>
       <div className="assessment-box">
         <div className="assessment-row">
-          <span>누적신체부담</span>
+          <span title="평균 기여도 50% 이상이면 충분함">누적신체부담</span>
           <span className={`assessment-value ${calc.cumulativeBurden === '충분함' ? 'value-positive' : 'value-negative'}`}>{calc.cumulativeBurden}</span>
         </div>
         <div className="assessment-row">

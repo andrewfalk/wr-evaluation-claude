@@ -10,7 +10,7 @@ import { AssessmentTab } from './components/AssessmentTab';
 import { ResultPanel } from './components/ResultPanel';
 import { createPatient, createPatientData, createDiagnosis, createJob, AUX_LABELS } from './utils/data';
 import {
-  computePatientCalc, getSideText, getStatusText, getReasonText
+  computePatientCalc, getSideText, getStatusText, getReasonText, isAssessmentComplete
 } from './utils/calculations';
 
 function App() {
@@ -24,6 +24,9 @@ function App() {
   const [saveName, setSaveName] = useState('');
   const [errors, setErrors] = useState({});
   const [showSidebar, setShowSidebar] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortKey, setSortKey] = useState('default');
+  const [statusFilter, setStatusFilter] = useState('all');
 
   const { presets, presetMeta, loading: presetLoading, error: presetError } = useJobPresets();
 
@@ -39,6 +42,32 @@ function App() {
   }, []);
 
   const calc = useMemo(() => computePatientCalc(formData), [formData]);
+
+  const displayPatients = useMemo(() => {
+    let list = patients;
+    if (searchQuery.trim()) {
+      const q = searchQuery.trim().toLowerCase();
+      list = list.filter(p => {
+        const d = p.data;
+        return (d.name || '').toLowerCase().includes(q)
+          || (d.diagnoses?.[0]?.name || '').toLowerCase().includes(q)
+          || (d.jobs?.[0]?.jobName || '').toLowerCase().includes(q);
+      });
+    }
+    if (statusFilter === 'complete') {
+      list = list.filter(p => isAssessmentComplete(p.data));
+    } else if (statusFilter === 'incomplete') {
+      list = list.filter(p => !isAssessmentComplete(p.data));
+    }
+    if (sortKey === 'name') {
+      list = [...list].sort((a, b) => (a.data.name || '').localeCompare(b.data.name || '', 'ko'));
+    } else if (sortKey === 'birthDate') {
+      list = [...list].sort((a, b) => (a.data.birthDate || '').localeCompare(b.data.birthDate || ''));
+    } else if (sortKey === 'evaluationDate') {
+      list = [...list].sort((a, b) => (b.data.evaluationDate || '').localeCompare(a.data.evaluationDate || ''));
+    }
+    return list;
+  }, [patients, searchQuery, sortKey, statusFilter]);
 
   const updatePatient = (updater) => {
     setPatients(prev => prev.map(p =>
@@ -410,28 +439,57 @@ function App() {
       {/* 사이드바 */}
       <div className={`sidebar ${showSidebar ? 'sidebar-open' : ''}`}>
         <div className="sidebar-header">
-          <h2>👥 환자 목록 ({patients.length})</h2>
+          <h2>👥 환자 목록 ({(searchQuery.trim() || statusFilter !== 'all') ? `${displayPatients.length}/${patients.length}` : patients.length})</h2>
           <div className="sidebar-actions">
-            <button className="btn btn-primary btn-sm" onClick={addPatient}>+ 추가</button>
-            <button className="btn btn-info btn-sm" onClick={() => setShowBatchImport(true)}>📥 일괄</button>
+            <button className="btn btn-primary btn-sm" onClick={addPatient} title="새 환자 추가">+ 추가</button>
+            <button className="btn btn-info btn-sm" onClick={() => setShowBatchImport(true)} title="Excel/CSV 파일에서 여러 환자 일괄 가져오기">📥 일괄</button>
+          </div>
+        </div>
+        <div className="sidebar-filter">
+          <input
+            type="search"
+            placeholder="검색 (이름, 진단, 직종)"
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+          />
+          <div className="sidebar-filter-row">
+            <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} title="종합소견 완료/미완료 기준 필터">
+              <option value="all">전체</option>
+              <option value="complete">완료</option>
+              <option value="incomplete">미완료</option>
+            </select>
+            <select value={sortKey} onChange={e => setSortKey(e.target.value)} title="환자 목록 정렬 기준 변경">
+              <option value="default">입력순</option>
+              <option value="name">이름순</option>
+              <option value="birthDate">생년월일순</option>
+              <option value="evaluationDate">평가일순</option>
+            </select>
           </div>
         </div>
         <div className="patient-list">
-          {patients.map((p, i) => (
-            <div
-              key={p.id}
-              className={`patient-item ${p.id === activeId ? 'active' : ''}`}
-              onClick={() => { setActiveId(p.id); setShowSidebar(false); }}
-            >
-              <div className="patient-item-name">{p.data.name || `환자 #${i + 1}`}</div>
-              <div className="patient-item-info">{p.data.birthDate || '-'} | {p.data.diagnoses?.[0]?.name || '-'}</div>
-              {patients.length > 1 && (
-                <div className="patient-item-actions">
-                  <button className="btn btn-danger btn-xs" onClick={e => { e.stopPropagation(); removePatient(p.id); }}>삭제</button>
+          {displayPatients.map(p => {
+            const origIndex = patients.indexOf(p);
+            return (
+              <div
+                key={p.id}
+                className={`patient-item ${p.id === activeId ? 'active' : ''}`}
+                onClick={() => { setActiveId(p.id); setShowSidebar(false); }}
+              >
+                <div className="patient-item-name">
+                  <span className={isAssessmentComplete(p.data) ? 'status-dot complete' : 'status-dot'} title={isAssessmentComplete(p.data) ? '종합소견 입력 완료' : '종합소견 미완료'}>
+                    {isAssessmentComplete(p.data) ? '●' : '○'}
+                  </span>
+                  {p.data.name || `환자 #${origIndex + 1}`}
                 </div>
-              )}
-            </div>
-          ))}
+                <div className="patient-item-info">{p.data.birthDate || '-'} | {p.data.diagnoses?.[0]?.name || '-'}</div>
+                {patients.length > 1 && (
+                  <div className="patient-item-actions">
+                    <button className="btn btn-danger btn-xs" onClick={e => { e.stopPropagation(); removePatient(p.id); }}>삭제</button>
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       </div>
 
@@ -440,12 +498,12 @@ function App() {
         <header className="header">
           <h1>🏥 근골격계 질환 업무관련성 평가</h1>
           <div className="header-actions">
-            <button className="btn btn-secondary btn-sm sidebar-toggle" onClick={() => setShowSidebar(v => !v)}>👥 환자 ({patients.length})</button>
-            <button className="btn btn-secondary btn-sm" onClick={() => setShowSaveModal(true)}>💾 저장</button>
-            <button className="btn btn-secondary btn-sm" onClick={() => setShowLoadModal(true)}>📂 불러오기</button>
-            <button className="btn btn-success btn-sm" onClick={handleExcelSingle}>📊 Excel(현재)</button>
-            <button className="btn btn-success btn-sm" onClick={handleExcelBatch}>📊 Excel(전체)</button>
-            <button className="btn btn-primary btn-sm" onClick={handlePDF}>📄 PDF</button>
+            <button className="btn btn-secondary btn-sm sidebar-toggle" onClick={() => setShowSidebar(v => !v)} title="환자 목록 사이드바 열기/닫기">👥 환자 ({patients.length})</button>
+            <button className="btn btn-secondary btn-sm" onClick={() => setShowSaveModal(true)} title="현재 데이터를 로컬에 저장">💾 저장</button>
+            <button className="btn btn-secondary btn-sm" onClick={() => setShowLoadModal(true)} title="저장된 데이터 불러오기">📂 불러오기</button>
+            <button className="btn btn-success btn-sm" onClick={handleExcelSingle} title="현재 환자 Excel 내보내기">📊 Excel(현재)</button>
+            <button className="btn btn-success btn-sm" onClick={handleExcelBatch} title="전체 환자 Excel 일괄 내보내기 (ZIP)">📊 Excel(전체)</button>
+            <button className="btn btn-primary btn-sm" onClick={handlePDF} title="현재 환자 PDF 내보내기">📄 PDF</button>
           </div>
         </header>
 
@@ -453,10 +511,10 @@ function App() {
           {/* 입력 패널 */}
           <div className="panel">
             <div className="tabs">
-              <button className={`tab ${activeTab === 'input' ? 'active' : ''}`} onClick={() => setActiveTab('input')}>기본정보</button>
-              <button className={`tab ${activeTab === 'diagnosis' ? 'active' : ''}`} onClick={() => setActiveTab('diagnosis')}>신청상병 ({formData.diagnoses.length})</button>
-              <button className={`tab ${activeTab === 'job' ? 'active' : ''}`} onClick={() => setActiveTab('job')}>직업력 ({formData.jobs.length})</button>
-              <button className={`tab ${activeTab === 'assessment' ? 'active' : ''}`} onClick={() => setActiveTab('assessment')}>종합소견</button>
+              <button className={`tab ${activeTab === 'input' ? 'active' : ''}`} onClick={() => setActiveTab('input')} title="인적사항, 특이사항, 평가기관 입력">기본정보</button>
+              <button className={`tab ${activeTab === 'diagnosis' ? 'active' : ''}`} onClick={() => setActiveTab('diagnosis')} title="진단코드 및 진단명 입력">신청상병 ({formData.diagnoses.length})</button>
+              <button className={`tab ${activeTab === 'job' ? 'active' : ''}`} onClick={() => setActiveTab('job')} title="직종, 근무기간, 신체부담 요인 입력">직업력 ({formData.jobs.length})</button>
+              <button className={`tab ${activeTab === 'assessment' ? 'active' : ''}`} onClick={() => setActiveTab('assessment')} title="KLG 등급, 상병확인, 업무관련성 평가">종합소견</button>
             </div>
 
             {activeTab === 'input' && <BasicInfoTab formData={formData} handleInput={handleInput} errors={errors} calc={calc} />}

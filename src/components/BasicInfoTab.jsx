@@ -26,7 +26,7 @@ export function BasicInfoTab({ formData, handleInput, errors, calc }) {
         <div className="form-row">
           <div className="form-group"><label>키 (cm)</label><input type="number" value={formData.height} onChange={e => handleInput('height', e.target.value)} /></div>
           <div className="form-group"><label>몸무게 (kg)</label><input type="number" value={formData.weight} onChange={e => handleInput('weight', e.target.value)} /></div>
-          <div className="form-group"><label>BMI</label><input value={calc.bmi || '-'} readOnly /></div>
+          <div className="form-group"><label>BMI</label><input value={calc.bmi || '-'} readOnly title="자동계산: 몸무게(kg) / 키(m)²" /></div>
         </div>
         <div className="form-row">
           <div className="form-group">
@@ -39,13 +39,13 @@ export function BasicInfoTab({ formData, handleInput, errors, calc }) {
             <input type="date" max="9999-12-31" value={formData.injuryDate} onChange={e => handleInput('injuryDate', e.target.value)} />
             {errors.injuryDate && <div className="error-message">{errors.injuryDate}</div>}
           </div>
-          <div className="form-group"><label>만 나이</label><input value={calc.age ? `${calc.age}세` : '-'} readOnly /></div>
+          <div className="form-group"><label>만 나이</label><input value={calc.age ? `${calc.age}세` : '-'} readOnly title="재해일자 기준 자동계산" /></div>
         </div>
       </div>
       <div className="section">
         <h2 className="section-title"><span className="section-icon">2</span>특이사항</h2>
         <div className="form-group">
-          <textarea rows="2" value={formData.specialNotes} onChange={e => handleInput('specialNotes', e.target.value)} placeholder="산재이력, 상병상태 등" />
+          <textarea rows="2" value={formData.specialNotes} onChange={e => handleInput('specialNotes', e.target.value)} placeholder="산재이력, 상병상태 등" title="산재이력, 상병상태, 휴식기간 등 기록" />
         </div>
       </div>
       <div className="section">
