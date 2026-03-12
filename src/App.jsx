@@ -27,6 +27,8 @@ function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [sortKey, setSortKey] = useState('default');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [selectedIds, setSelectedIds] = useState(new Set());
+  const [lastAutoSave, setLastAutoSave] = useState(null);
 
   const { presets, presetMeta, loading: presetLoading, error: presetError } = useJobPresets();
 
@@ -40,6 +42,37 @@ function App() {
       catch { localStorage.removeItem('wrEvaluationSavedItems'); }
     }
   }, []);
+
+  useEffect(() => {
+    const saved = localStorage.getItem('wrEvaluationAutoSave');
+    if (saved) {
+      try {
+        const data = JSON.parse(saved);
+        const time = new Date(data.savedAt).toLocaleString('ko-KR');
+        const doConfirm = window.electron?.showConfirm
+          ? (msg) => window.electron.showConfirm(msg)
+          : (msg) => Promise.resolve(confirm(msg));
+        doConfirm(`이전 자동 저장 데이터가 있습니다 (${time}).\n이어서 작업하시겠습니까?`).then(ok => {
+          if (ok) {
+            setPatients(data.patients);
+            setActiveId(data.patients[0].id);
+          }
+          localStorage.removeItem('wrEvaluationAutoSave');
+        });
+      } catch {
+        localStorage.removeItem('wrEvaluationAutoSave');
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const data = { savedAt: new Date().toISOString(), patients };
+      localStorage.setItem('wrEvaluationAutoSave', JSON.stringify(data));
+      setLastAutoSave(new Date());
+    }, 30000);
+    return () => clearTimeout(timer);
+  }, [patients]);
 
   const calc = useMemo(() => computePatientCalc(formData), [formData]);
 
@@ -163,21 +196,28 @@ function App() {
     const items = [...savedItems, item];
     setSavedItems(items);
     localStorage.setItem('wrEvaluationSavedItems', JSON.stringify(items));
+    localStorage.removeItem('wrEvaluationAutoSave');
+    setLastAutoSave(null);
     setShowSaveModal(false);
     setSaveName('');
     if (window.electron?.showAlert) await window.electron.showAlert('저장됨');
     else alert('저장됨');
   };
 
-  const handleLoad = async (item) => {
-    const confirmed = window.electron?.showConfirm
-      ? await window.electron.showConfirm('현재 데이터를 덮어쓰시겠습니까?')
-      : confirm('현재 데이터를 덮어쓰시겠습니까?');
-    if (confirmed) {
+  const handleLoad = async (item, mode = 'overwrite') => {
+    if (mode === 'overwrite') {
+      const confirmed = window.electron?.showConfirm
+        ? await window.electron.showConfirm('현재 데이터를 덮어쓰시겠습니까?')
+        : confirm('현재 데이터를 덮어쓰시겠습니까?');
+      if (!confirmed) return;
       setPatients(item.patients);
       setActiveId(item.patients[0].id);
-      setShowLoadModal(false);
+    } else {
+      const newPatients = item.patients.map(p => ({ ...p, id: Date.now() + Math.random() }));
+      setPatients(prev => [...prev, ...newPatients]);
+      setActiveId(newPatients[0].id);
     }
+    setShowLoadModal(false);
   };
 
   const handleDelete = async (id) => {
@@ -370,6 +410,51 @@ function App() {
     }
   };
 
+  const handleExcelSelected = async () => {
+    const selected = patients.filter(p => selectedIds.has(p.id) && p.data.name);
+    if (selected.length === 0) {
+      const msg = '선택된 환자가 없거나 이름이 미입력입니다';
+      if (window.electron?.showAlert) await window.electron.showAlert(msg);
+      else alert(msg);
+      return;
+    }
+
+    const JSZip = (await import('jszip')).default;
+    const zip = new JSZip();
+
+    selected.forEach(p => {
+      const d = p.data;
+      const { b5, b6, b7, b8, b9 } = generateEMRData(d);
+      const wb = XLSX.utils.book_new();
+      const wsData = [
+        ['업무관련성특별진찰소견서(근골격계질병)', ''],
+        ['항목', '내용'],
+        ['1.신청상병명', ''],
+        ['2.진료기록 및 의학적 소견', ''],
+        ['3.최종 확인 상병명', b5],
+        ['4.직업적 요인', b6],
+        ['5.개인적 요인', b7],
+        ['6.종합소견', b8],
+        ['7.복귀 관련 고려사항', b9]
+      ];
+      const ws = XLSX.utils.aoa_to_sheet(wsData);
+      ws['!cols'] = [{ wch: 25 }, { wch: 80 }];
+      XLSX.utils.book_append_sheet(wb, ws, '업무관련성특별진찰소견서(근골격계질병)');
+
+      const fileName = `${d.name || '미입력'}_${d.injuryDate || '미입력'}.xlsx`;
+      const buf = XLSX.write(wb, { type: 'array', bookType: 'xlsx' });
+      zip.file(fileName, buf);
+    });
+
+    const blob = await zip.generateAsync({ type: 'blob' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `업무관련성평가_선택${selected.length}명_${new Date().toISOString().split('T')[0]}.zip`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const handlePDF = async () => {
     const e = validate(formData);
     setErrors(e);
@@ -379,23 +464,50 @@ function App() {
       return;
     }
 
-    const { age, bmi, relatedness: r, cumulativeBurden: c, jobBurdens: jb } = calc;
+    const { age, bmi, relatedness: r, cumulativeBurden: cum, jobBurdens: jb } = calc;
+    const td = 'border:1px solid #ddd; padding:8px;';
+    const th = `${td} background:#f5f5f5;`;
+    const h3s = 'margin:20px 0 10px; font-size:14px;';
+
+    // 종합소견 HTML 생성
+    const assessmentHtml = formData.diagnoses.filter(d => d.code || d.name).map((d, i) => {
+      let html = `<div style="background:#f8f9fa; padding:12px; border-radius:8px; margin-bottom:10px;">`;
+      html += `<div style="font-weight:bold; margin-bottom:8px;">상병 #${i + 1}: ${d.code} ${d.name} (${getSideText(d.side)})</div>`;
+      const renderSide = (label, confirmed, assessment, reasons, reasonOther) => {
+        let s = `<div style="margin-left:10px; margin-bottom:6px;">`;
+        s += `<b>${label}:</b> 상병 상태(${getStatusText(confirmed)}) / 업무관련성(${assessment === 'high' ? '높음' : assessment === 'low' ? '낮음' : '-'})`;
+        if (assessment === 'low' && reasons?.length) {
+          s += `<div style="margin-left:15px; margin-top:4px; font-size:11px; color:#555;">낮음 사유: ${getReasonText(reasons, reasonOther).split('\n').join(', ')}</div>`;
+        }
+        s += `</div>`;
+        return s;
+      };
+      if (d.side === 'right' || d.side === 'both') html += renderSide('우측', d.confirmedRight, d.assessmentRight, d.reasonRight, d.reasonRightOther);
+      if (d.side === 'left' || d.side === 'both') html += renderSide('좌측', d.confirmedLeft, d.assessmentLeft, d.reasonLeft, d.reasonLeftOther);
+      html += `</div>`;
+      return html;
+    }).join('');
+
     const content = document.createElement('div');
     content.style.cssText = 'font-family: "Noto Sans KR", sans-serif; padding: 40px; max-width: 800px; font-size: 12px; line-height: 1.6;';
     content.innerHTML = `
       <h1 style="text-align:center; margin-bottom:30px; font-size:18px; border-bottom:2px solid #333; padding-bottom:10px;">업무관련성 특별진찰 소견서</h1>
       <table style="width:100%; border-collapse:collapse; margin-bottom:20px;">
-        <tr><td style="border:1px solid #ddd; padding:8px; background:#f5f5f5; width:120px;"><b>이름/성별</b></td><td style="border:1px solid #ddd; padding:8px;">${formData.name} (${formData.gender === 'male' ? '남' : formData.gender === 'female' ? '여' : '-'})</td><td style="border:1px solid #ddd; padding:8px; background:#f5f5f5; width:120px;"><b>키/몸무게</b></td><td style="border:1px solid #ddd; padding:8px;">${formData.height || '-'}cm / ${formData.weight || '-'}kg (BMI: ${bmi})</td></tr>
-        <tr><td style="border:1px solid #ddd; padding:8px; background:#f5f5f5;"><b>생년월일</b></td><td style="border:1px solid #ddd; padding:8px;">${formData.birthDate || '-'}</td><td style="border:1px solid #ddd; padding:8px; background:#f5f5f5;"><b>재해일자</b></td><td style="border:1px solid #ddd; padding:8px;">${formData.injuryDate || '-'} (만 ${age}세)</td></tr>
+        <tr><td style="${th} width:120px;"><b>이름/성별</b></td><td style="${td}">${formData.name} (${formData.gender === 'male' ? '남' : formData.gender === 'female' ? '여' : '-'})</td><td style="${th} width:120px;"><b>키/몸무게</b></td><td style="${td}">${formData.height || '-'}cm / ${formData.weight || '-'}kg (BMI: ${bmi})</td></tr>
+        <tr><td style="${th}"><b>생년월일</b></td><td style="${td}">${formData.birthDate || '-'}</td><td style="${th}"><b>재해일자</b></td><td style="${td}">${formData.injuryDate || '-'} (만 ${age}세)</td></tr>
       </table>
-      <h3 style="margin:20px 0 10px; font-size:14px;">📋 신청 상병</h3>
+      <h3 style="${h3s}">📋 신청 상병</h3>
       <table style="width:100%; border-collapse:collapse; margin-bottom:20px;">
-        ${formData.diagnoses.filter(d => d.code || d.name).map((d, i) => `<tr><td style="border:1px solid #ddd; padding:8px;">#${i + 1}. ${d.code} ${d.name} (${getSideText(d.side)})</td></tr>`).join('')}
+        ${formData.diagnoses.filter(d => d.code || d.name).map((d, i) => `<tr><td style="${td}">#${i + 1}. ${d.code} ${d.name} (${getSideText(d.side)})</td></tr>`).join('')}
       </table>
-      <h3 style="margin:20px 0 10px; font-size:14px;">👷 직업력</h3>
-      <table style="width:100%; border-collapse:collapse; margin-bottom:20px;">
-        <tr style="background:#f5f5f5;"><th style="border:1px solid #ddd; padding:8px;">직종</th><th style="border:1px solid #ddd; padding:8px;">근무기간</th><th style="border:1px solid #ddd; padding:8px;">중량물</th><th style="border:1px solid #ddd; padding:8px;">쪼그려앉기</th><th style="border:1px solid #ddd; padding:8px;">신체부담</th></tr>
-        ${jb.filter(j => j.jobName).map(j => `<tr><td style="border:1px solid #ddd; padding:8px;">${j.jobName}</td><td style="border:1px solid #ddd; padding:8px;">${j.period}</td><td style="border:1px solid #ddd; padding:8px;">${j.weight || '-'}kg/일</td><td style="border:1px solid #ddd; padding:8px;">${j.squatting || '-'}분/일</td><td style="border:1px solid #ddd; padding:8px; font-weight:bold;">${j.burden.level}</td></tr>`).join('')}
+      ${formData.specialNotes ? `<h3 style="${h3s}">📝 특이사항</h3><div style="background:#f8f9fa; padding:12px; border-radius:8px; margin-bottom:20px; white-space:pre-wrap;">${formData.specialNotes}</div>` : ''}
+      <h3 style="${h3s}">👷 직업력</h3>
+      <table style="width:100%; border-collapse:collapse; margin-bottom:10px;">
+        <tr style="background:#f5f5f5;"><th style="${td}">직종</th><th style="${td}">근무기간</th><th style="${td}">중량물</th><th style="${td}">쪼그려앉기</th><th style="${td}">신체부담</th></tr>
+        ${jb.filter(j => j.jobName).map(j => {
+          const aux = Object.entries(AUX_LABELS).filter(([k]) => j[k]).map(([, v]) => v);
+          return `<tr><td style="${td}">${j.jobName}${aux.length ? `<div style="font-size:10px; color:#666; margin-top:2px;">보조: ${aux.join(', ')}</div>` : ''}</td><td style="${td}">${j.period}</td><td style="${td}">${j.weight || '-'}kg/일</td><td style="${td}">${j.squatting || '-'}분/일</td><td style="${td} font-weight:bold;">${j.burden.level}</td></tr>`;
+        }).join('')}
       </table>
       <div style="font-size:11px; color:#555; margin-bottom:15px; line-height:1.6;">
         <b>참고)</b> 신체부담 정도는 다음의 4단계로 구분함.<br/>
@@ -406,7 +518,15 @@ function App() {
       </div>
       <div style="background:#667eea; color:white; padding:15px; border-radius:8px; margin:20px 0; text-align:center;">
         <div style="font-size:16px; font-weight:bold;">신체부담기여도: ${r.min}% ~ ${r.max}%</div>
-        <div style="margin-top:5px;">누적신체부담: ${c}</div>
+        <div style="margin-top:5px;">누적신체부담: ${cum}</div>
+      </div>
+      <h3 style="${h3s}">📋 종합소견</h3>
+      ${assessmentHtml}
+      ${formData.returnConsiderations ? `<h3 style="${h3s}">💼 복귀 관련 고려사항</h3><div style="background:#f8f9fa; padding:12px; border-radius:8px; margin-bottom:20px; white-space:pre-wrap;">${formData.returnConsiderations}</div>` : ''}
+      <div style="border-top:2px solid #333; margin-top:30px; padding-top:15px; text-align:center; font-size:12px; color:#555;">
+        <div>${formData.evaluationDate || '-'}</div>
+        <div style="margin-top:4px;">${formData.hospitalName || '-'} ${formData.department || ''}</div>
+        <div style="margin-top:4px;">담당의: ${formData.doctorName || '-'}</div>
       </div>
     `;
 
@@ -452,6 +572,16 @@ function App() {
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
           />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.8rem', padding: '4px 0' }}>
+            <input type="checkbox" checked={displayPatients.length > 0 && displayPatients.every(p => selectedIds.has(p.id))} onChange={e => {
+              setSelectedIds(prev => {
+                const next = new Set(prev);
+                displayPatients.forEach(p => e.target.checked ? next.add(p.id) : next.delete(p.id));
+                return next;
+              });
+            }} />
+            <span style={{ whiteSpace: 'nowrap' }}>전체선택{selectedIds.size > 0 ? ` (${selectedIds.size})` : ''}</span>
+          </div>
           <div className="sidebar-filter-row">
             <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} title="종합소견 완료/미완료 기준 필터">
               <option value="all">전체</option>
@@ -475,11 +605,18 @@ function App() {
                 className={`patient-item ${p.id === activeId ? 'active' : ''}`}
                 onClick={() => { setActiveId(p.id); setShowSidebar(false); }}
               >
-                <div className="patient-item-name">
+                <div className="patient-item-name" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <input type="checkbox" checked={selectedIds.has(p.id)} onClick={e => e.stopPropagation()} onChange={() => {
+                    setSelectedIds(prev => {
+                      const next = new Set(prev);
+                      next.has(p.id) ? next.delete(p.id) : next.add(p.id);
+                      return next;
+                    });
+                  }} />
+                  <span style={{ flex: 1 }}>{p.data.name || `환자 #${origIndex + 1}`}</span>
                   <span className={isAssessmentComplete(p.data) ? 'status-dot complete' : 'status-dot'} title={isAssessmentComplete(p.data) ? '종합소견 입력 완료' : '종합소견 미완료'}>
-                    {isAssessmentComplete(p.data) ? '●' : '○'}
+                    {isAssessmentComplete(p.data) ? '●' : '●'}
                   </span>
-                  {p.data.name || `환자 #${origIndex + 1}`}
                 </div>
                 <div className="patient-item-info">{p.data.birthDate || '-'} | {p.data.diagnoses?.[0]?.name || '-'}</div>
                 {patients.length > 1 && (
@@ -496,12 +633,13 @@ function App() {
       {/* 메인 영역 */}
       <div className="main-area">
         <header className="header">
-          <h1>🏥 근골격계 질환 업무관련성 평가</h1>
+          <h1>🏥 근골격계 질환 업무관련성 평가{lastAutoSave && <span style={{ fontSize: '0.7rem', color: '#888', marginLeft: 8, fontWeight: 400 }} title="마지막 자동 저장 시각">💾 {lastAutoSave.toLocaleTimeString('ko-KR')}</span>}</h1>
           <div className="header-actions">
             <button className="btn btn-secondary btn-sm sidebar-toggle" onClick={() => setShowSidebar(v => !v)} title="환자 목록 사이드바 열기/닫기">👥 환자 ({patients.length})</button>
             <button className="btn btn-secondary btn-sm" onClick={() => setShowSaveModal(true)} title="현재 데이터를 로컬에 저장">💾 저장</button>
             <button className="btn btn-secondary btn-sm" onClick={() => setShowLoadModal(true)} title="저장된 데이터 불러오기">📂 불러오기</button>
             <button className="btn btn-success btn-sm" onClick={handleExcelSingle} title="현재 환자 Excel 내보내기">📊 Excel(현재)</button>
+            {selectedIds.size > 0 && <button className="btn btn-success btn-sm" onClick={handleExcelSelected} title={`선택된 ${selectedIds.size}명 Excel 내보내기 (ZIP)`}>📊 Excel(선택 {selectedIds.size})</button>}
             <button className="btn btn-success btn-sm" onClick={handleExcelBatch} title="전체 환자 Excel 일괄 내보내기 (ZIP)">📊 Excel(전체)</button>
             <button className="btn btn-primary btn-sm" onClick={handlePDF} title="현재 환자 PDF 내보내기">📄 PDF</button>
           </div>
@@ -557,11 +695,15 @@ function App() {
             ) : (
               savedItems.map(item => (
                 <div key={item.id} className="saved-item">
-                  <div onClick={() => handleLoad(item)}>
+                  <div>
                     <h4>{item.name}</h4>
                     <p style={{ fontSize: '0.8rem', color: '#666' }}>{item.count || 1}명 | {new Date(item.savedAt).toLocaleString('ko-KR')}</p>
                   </div>
-                  <button className="btn btn-danger btn-xs" onClick={() => handleDelete(item.id)}>삭제</button>
+                  <div style={{ display: 'flex', gap: 4 }}>
+                    <button className="btn btn-primary btn-xs" onClick={() => handleLoad(item, 'overwrite')} title="기존 데이터를 삭제하고 이 저장 데이터로 교체">덮어쓰기</button>
+                    <button className="btn btn-info btn-xs" onClick={() => handleLoad(item, 'append')} title="기존 데이터를 유지하고 이 저장 데이터를 뒤에 추가">추가</button>
+                    <button className="btn btn-danger btn-xs" onClick={() => handleDelete(item.id)}>삭제</button>
+                  </div>
                 </div>
               ))
             )}

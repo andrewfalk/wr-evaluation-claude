@@ -8,12 +8,12 @@ body { font-family: 'Noto Sans KR', sans-serif; background: linear-gradient(135d
 .sidebar-actions { display: flex; gap: 5px; flex-wrap: wrap; }
 .sidebar-actions .btn { flex: 1; font-size: 0.75rem; padding: 8px 5px; }
 .sidebar-filter { display: flex; flex-direction: column; gap: 5px; padding: 0 15px 10px; }
-.sidebar-filter input, .sidebar-filter select { width: 100%; padding: 6px 8px; border: 1px solid #ddd; border-radius: 6px; font-size: 0.8rem; background: white; }
-.sidebar-filter input:focus, .sidebar-filter select:focus { outline: none; border-color: #667eea; }
+.sidebar-filter input:not([type="checkbox"]), .sidebar-filter select { width: 100%; padding: 6px 8px; border: 1px solid #ddd; border-radius: 6px; font-size: 0.8rem; background: white; }
+.sidebar-filter input:not([type="checkbox"]):focus, .sidebar-filter select:focus { outline: none; border-color: #667eea; }
 .sidebar-filter-row { display: flex; gap: 5px; }
 .sidebar-filter-row select { flex: 1; }
-.status-dot { margin-right: 4px; font-size: 0.7rem; }
-.status-dot.complete { color: #51cf66; }
+.status-dot { display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; border-radius: 50%; font-size: 0.6rem; flex-shrink: 0; border: 2px solid #e03131; color: #e03131; background: #fff0f0; }
+.status-dot.complete { border-color: #51cf66; color: #51cf66; background: #e6fcf0; }
 .patient-list { background: rgba(255,255,255,0.95); border-radius: 12px; padding: 10px; flex: 1; overflow-y: auto; max-height: calc(100vh - 320px); }
 .patient-item { padding: 12px; border-radius: 8px; cursor: pointer; margin-bottom: 5px; border: 2px solid transparent; transition: all 0.2s; }
 .patient-item:hover { background: #f0f0f0; }
