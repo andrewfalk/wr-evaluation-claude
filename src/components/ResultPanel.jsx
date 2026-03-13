@@ -24,7 +24,7 @@ export function ResultPanel({ calc, previewText }) {
             <span style={{ fontSize: '0.85rem' }}>{j.jobName}</span>
             <span className={`job-badge badge-${j.burden.level === '고도' ? 'high' : j.burden.level === '중등도상' ? 'medium-high' : j.burden.level === '중등도하' ? 'medium-low' : 'low'}`}>{j.burden.level}</span>
           </div>
-          <div style={{ fontSize: '0.75rem', color: '#666', marginTop: 4 }}>{j.period} | {j.weight || '-'}kg | {j.squatting || '-'}분</div>
+          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 4 }}>{j.period} | {j.weight || '-'}kg | {j.squatting || '-'}분</div>
         </div>
       ))}
       <h3 style={{ margin: '15px 0 10px', fontSize: '0.9rem' }}>미리보기</h3>

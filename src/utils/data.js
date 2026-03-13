@@ -90,6 +90,22 @@ export const AUX_LABELS = {
   jumpDown: '뛰어내리기'
 };
 
+// 설정 기본값
+export const DEFAULT_SETTINGS = {
+  theme: 'light',
+  fontSize: 'medium',
+  hospitalName: '근로복지공단 안산병원',
+  department: '직업환경의학과',
+  doctorName: '김호길',
+  autoSaveInterval: 30
+};
+
+export const FONT_SIZE_MAP = {
+  small: '14px',
+  medium: '16px',
+  large: '18px'
+};
+
 // Fallback Presets
 export const FALLBACK_PRESETS = [
   { id: 1, jobName: "건설 현장 배근공", category: "건설업", weight: 2500, squatting: 180, source: "Fallback" },

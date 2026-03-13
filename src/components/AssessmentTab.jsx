@@ -11,7 +11,7 @@ function SideAssessment({ diag, index, side, handleDiagnosis }) {
   const reasonOtherKey = isRight ? 'reasonRightOther' : 'reasonLeftOther';
 
   return (
-    <div style={{ background: '#f8f9fa', padding: 12, borderRadius: 8, marginTop: 12 }}>
+    <div style={{ background: 'var(--card-bg)', padding: 12, borderRadius: 8, marginTop: 12 }}>
       <h4 style={{ marginBottom: 8, color, fontSize: '0.85rem' }}>▶ {label}</h4>
       <div className="form-row">
         <div className="form-group">
@@ -100,7 +100,7 @@ export function AssessmentTab({ formData, handleDiagnosis, handleInput }) {
           {(diag.side === 'left' || diag.side === 'both') && (
             <SideAssessment diag={diag} index={i} side="left" handleDiagnosis={handleDiagnosis} />
           )}
-          {!diag.side && <div style={{ padding: 15, textAlign: 'center', color: '#888', background: '#f8f9fa', borderRadius: 8, marginTop: 12 }}>⚠️ 신청상병에서 부위 선택 필요</div>}
+          {!diag.side && <div style={{ padding: 15, textAlign: 'center', color: 'var(--text-muted)', background: 'var(--card-bg)', borderRadius: 8, marginTop: 12 }}>⚠️ 신청상병에서 부위 선택 필요</div>}
         </div>
       ))}
       <div className="section" style={{ marginTop: 20 }}>

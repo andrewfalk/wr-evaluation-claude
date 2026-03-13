@@ -312,16 +312,16 @@ export function BatchImportModal({ onClose, onImport, existingPatients = [] }) {
             onChange={e => handleFile(e.target.files[0])}
           />
           <p>📁 클릭하거나 파일을 드래그하세요</p>
-          <p style={{ color: '#888', fontSize: '0.85rem', marginTop: 5 }}>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginTop: 5 }}>
             첫 행: 컬럼명 / 2행부터: 환자별 데이터
           </p>
           {file && <p style={{ marginTop: 10, color: '#667eea' }}>✅ {file.name}</p>}
         </div>
 
         {/* 지원 컬럼 안내 */}
-        <details style={{ marginTop: 10, fontSize: '0.8rem', color: '#666' }}>
+        <details style={{ marginTop: 10, fontSize: '0.8rem', color: 'var(--text-muted)' }}>
           <summary style={{ cursor: 'pointer' }}>📋 지원하는 컬럼 (29개)</summary>
-          <div style={{ marginTop: 8, padding: 10, background: '#f8f9fa', borderRadius: 4 }}>
+          <div style={{ marginTop: 8, padding: 10, background: 'var(--card-bg)', borderRadius: 4 }}>
             <strong>기본정보:</strong> 이름, 생년월일, 재해일자, 키, 몸무게, 성별<br/>
             <strong>기관정보:</strong> 병원명, 진료과, 담당의<br/>
             <strong>기타:</strong> 특이사항, 복귀고려사항<br/>
@@ -351,7 +351,7 @@ export function BatchImportModal({ onClose, onImport, existingPatients = [] }) {
                   ))}
                   {preview.length > 6 && (
                     <tr>
-                      <td colSpan={Math.min(columns.length, 9)} style={{ textAlign: 'center', color: '#888' }}>
+                      <td colSpan={Math.min(columns.length, 9)} style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
                         ... 외 {preview.length - 6}행
                       </td>
                     </tr>

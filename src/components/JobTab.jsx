@@ -36,7 +36,7 @@ export function JobTab({ formData, handleJob, handlePresetSelect, addJob, remove
                   const yVal = src.match(/(\d+)\s*년/)?.[1] || '';
                   const mVal = src.match(/(\d+)\s*개월/)?.[1] || '';
                   const ovr = job.workPeriodOverride;
-                  const ovrStyle = ovr ? { borderColor: '#667eea', background: '#f0f3ff' } : {};
+                  const ovrStyle = ovr ? { borderColor: '#667eea', background: 'var(--card-bg)' } : {};
                   return (
                     <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
                       <input type="number" min="0" style={{ width: 70, ...ovrStyle }} value={yVal}

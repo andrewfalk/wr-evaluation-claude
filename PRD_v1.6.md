@@ -23,6 +23,21 @@
     * 상수 추출 (`LOW_REASON_OPTIONS`, `AUX_LABELS`)
     * 배치 내보내기 유효성 검사 (이름 없는 환자 스킵)
     * 입력 시 에러 자동 클리어
+    * 자동 임시저장 (30초 간격) 및 재진입 시 복원 확인
+    * 환자 검색/필터/정렬 기능 (이름·진단·직종 검색, 완료/미완료 필터, 4종 정렬)
+    * 환자 다중 선택 및 선택 Excel 내보내기 (ZIP)
+    * 불러오기 추가(append) 모드 지원
+    * PDF 출력 강화 (특이사항, 종합소견, 복귀고려사항, 평가기관정보, 보조요인 포함)
+    * 종합소견 완료/미완료 상태 표시 (`isAssessmentComplete`)
+    * 평가기관 기본값 설정 (병원명, 진료과, 의사명)
+    * UI 전역 tooltip(title) 추가
+    * 선택 환자 일괄 삭제 기능 (F-607 확장)
+    * 사용자 설정 기능: 테마(라이트/다크), 폰트 크기(3단계), 기본 병원명/진료과/의사명, 자동저장 간격 (`SettingsModal.jsx`, `DEFAULT_SETTINGS`)
+    * 다크 모드 지원: CSS 변수 기반 테마 시스템, 14개 CSS 변수 정의, 인라인 스타일 변수 전환
+    * Export 로직 분리: `exportHandlers.js` (`genReport`, `generateEMRData`, `exportExcelSingle/Batch/Selected`, `exportPDF`, `buildWorkbook`)
+    * Save/Load 로직 분리: `storageHandlers.js` (`loadSavedItems`, `savePatientsData`, `deleteSavedItem`, `hasDuplicateName`)
+    * 환자 필터/정렬 커스텀 훅 분리: `usePatientList.js`
+    * 저장명 중복 시 덮어쓰기 확인 (동일 이름 교체, IPC 확인 대화상자)
 * **프로젝트 목적:** 근로자의 신체부담 요인을 입력받아 업무관련성(%)을 구간값(최소~최대)으로 자동 계산하고, 최종 의학적 소견을 포함한 리포트 생성 및 엑셀 데이터 연동을 자동화함.
 * **주요 타겟:** 직업환경의학 전문의, 업무적 질병 판정 관련 실무자
 * **플랫폼:**
@@ -70,8 +85,8 @@
 
 ```
 src/
-├── App.jsx                          # 메인 앱 (~430줄, 상태관리/라우팅)
-├── index.css                        # 전역 스타일 (반응형 포함)
+├── App.jsx                          # 메인 앱 (~320줄, 상태관리/라우팅)
+├── index.css                        # 전역 스타일 (반응형, CSS 변수 테마 시스템)
 ├── main.jsx                         # React 엔트리포인트
 ├── components/
 │   ├── BasicInfoTab.jsx             # 기본정보 탭 (인적사항, 특이사항, 평가기관)
@@ -80,12 +95,16 @@ src/
 │   ├── AssessmentTab.jsx            # 종합소견 탭 (SideAssessment 서브컴포넌트)
 │   ├── ResultPanel.jsx              # 결과 패널 (계산결과, 미리보기)
 │   ├── PresetSearch.jsx             # 직종 프리셋 검색 UI
-│   └── BatchImportModal.jsx         # 배치 가져오기 모달
+│   ├── BatchImportModal.jsx         # 배치 가져오기 모달
+│   └── SettingsModal.jsx            # 사용자 설정 모달 (테마, 폰트, 기본값, 자동저장)
 ├── hooks/
-│   └── useJobPresets.js             # 프리셋 데이터 로딩 훅
+│   ├── useJobPresets.js             # 프리셋 데이터 로딩 훅
+│   └── usePatientList.js            # 환자 검색/필터/정렬 훅
 └── utils/
-    ├── data.js                      # 팩토리 함수, 상수 정의
-    └── calculations.js              # 모든 계산 로직 통합
+    ├── data.js                      # 팩토리 함수, 상수 정의 (DEFAULT_SETTINGS, FONT_SIZE_MAP 포함)
+    ├── calculations.js              # 모든 계산 로직 통합
+    ├── exportHandlers.js            # Export 로직 (Excel/PDF/EMR 생성)
+    └── storageHandlers.js           # Save/Load/Delete 로직
 electron/
 ├── main.js                          # Electron 메인 프로세스
 └── preload.js                       # contextBridge API 노출
@@ -101,6 +120,10 @@ public/
 4. **계산 캐싱**: `useMemo` + `computePatientCalc()` 통합 유틸리티
 5. **데이터 생성**: 팩토리 패턴 (`createPatient`, `createDiagnosis`, `createJob`)
 6. **ID 생성**: `crypto.randomUUID()` (충돌 방지)
+7. **완료 판정**: `isAssessmentComplete()` — 종합소견 입력 완료 여부 자동 판정 (상태 dot, 필터에 사용)
+8. **테마 시스템**: CSS 변수(`--bg-panel`, `--text-primary` 등) + `[data-theme="dark"]` 다크 모드
+9. **사용자 설정**: `localStorage` `wrEvaluationSettings` 키, `DEFAULT_SETTINGS` 상수 기반
+10. **관심사 분리**: Export(`exportHandlers.js`), Storage(`storageHandlers.js`), 필터(`usePatientList.js`)를 App.jsx에서 분리
 
 ---
 
@@ -142,17 +165,20 @@ public/
 | :-- | :-- | :-- | :-- | :-- | :-- |
 | **L-101** | **평가** | **직종별 신체부담정도** | 1. **각 직종별로** IFS 로직 적용하여 신체부담정도(고도~경도) 산출<br>2. 등급별 점수 매핑 (Min ~ Max)<br>3. 이 값들은 L-201 업무관련성 계산에 직접 사용됨 | ✅ 구현 | *하단 [로직 상세 1] 참조* |
 | **L-201** | **결과** | **업무관련성(%)** | 1. 각 직종별 신체부담정도(L-101)를 공식에 대입<br>2. Min%, Max% 각각 계산<br>3. 화면 표시: **"Min% ~ Max%"** | ✅ 구현 | *하단 [로직 상세 2] 참조* |
-| **L-301** | **내보내기** | **텍스트 병합** | 1. 모든 데이터와 계산 결과, 소견을 하나의 텍스트로 변환<br>2. 줄바꿈(\n) 활용하여 가독성 확보<br>3. EMR 필드 생성 (B5~B9 구조화 데이터) | ✅ 구현 | `genReport()`<br>`generateEMRData()` |
+| **L-301** | **내보내기** | **텍스트 병합** | 1. 모든 데이터와 계산 결과, 소견을 하나의 텍스트로 변환<br>2. 줄바꿈(\n) 활용하여 가독성 확보<br>3. EMR 필드 생성 (B5~B9 구조화 데이터) | ✅ 구현 | `exportHandlers.js`<br>`genReport()`<br>`generateEMRData()` |
 
 ### 4.4. 데이터 저장 및 불러오기 (Storage)
 
 | ID | 카테고리 | 기능명 | 상세 설명 | 상태 | 비고 |
 | :-- | :-- | :-- | :-- | :-- | :-- |
-| **F-601** | **데이터관리** | **임시저장** | 1. "저장" 버튼 → 저장명 입력창<br>2. Local Storage에 저장 `{id, name, count, savedAt, patients}`<br>3. 여러 개의 평가 데이터 개별 저장 가능<br>4. 저장 시 타임스탬프 자동 기록 | ✅ 구현 | `wrEvaluationSavedItems` 키 |
-| **F-602** | **데이터관리** | **불러오기** | 1. "불러오기" 버튼 → 저장된 데이터 목록 모달 표시<br>2. 목록: 저장명, 환자수, 저장 날짜/시간<br>3. 선택 후 IPC 확인 대화상자로 덮어쓰기 확인<br>4. 삭제 기능 (IPC 확인 대화상자) | ✅ 구현 | `dialog.showMessageBox` 사용 |
-| **F-603** | **데이터관리** | **자동 임시저장** | 1. 입력 중인 데이터를 주기적으로 자동 저장<br>2. 페이지 재진입 시 "이전 작업 이어하기" 확인 표시 | ❌ 미구현 | Phase 3 |
+| **F-601** | **데이터관리** | **임시저장** | 1. "저장" 버튼 → 저장명 입력창<br>2. Local Storage에 저장 `{id, name, count, savedAt, patients}`<br>3. 여러 개의 평가 데이터 개별 저장 가능<br>4. 저장 시 타임스탬프 자동 기록<br>5. **중복 저장명 처리:** 같은 이름 존재 시 "이미 존재합니다. 덮어쓰시겠습니까?" IPC 확인 → 교체 | ✅ 구현 | `storageHandlers.js`<br>`wrEvaluationSavedItems` 키 |
+| **F-602** | **데이터관리** | **불러오기** | 1. "불러오기" 버튼 → 저장된 데이터 목록 모달 표시<br>2. 목록: 저장명, 환자수, 저장 날짜/시간<br>3. **덮어쓰기 모드:** 기존 데이터 삭제 후 교체 (IPC 확인 대화상자)<br>4. **추가 모드:** 기존 데이터 유지 + 뒤에 추가 (새 ID 부여)<br>5. 삭제 기능 (IPC 확인 대화상자)<br>6. UI: 덮어쓰기/추가/삭제 3개 버튼 | ✅ 구현 | `dialog.showMessageBox` 사용 |
+| **F-603** | **데이터관리** | **자동 임시저장** | 1. 30초 간격 자동 저장 (`wrEvaluationAutoSave` 키)<br>2. 재진입 시 "이전 자동 저장 데이터가 있습니다" IPC 확인 대화상자<br>3. 수동 저장 시 자동저장 데이터 클리어<br>4. 헤더에 마지막 자동 저장 시각 표시 (💾 아이콘) | ✅ 구현 | `App.jsx` |
 | **F-604** | **데이터관리** | **파일 Import (Excel)** | 1. 드래그앤드롭 파일 업로드 (XLSX/XLS/CSV)<br>2. 파일 미리보기 테이블 (8열 × 5행)<br>3. **29개 필드 자동 인식:**<br>   - 기본(5): 이름, 생년월일, 재해일자, 키, 몸무게<br>   - 기관(3): 병원, 진료과, 의사<br>   - 부가(2): 특이사항, 복귀 고려사항<br>   - 진단(5): 코드, 명칭, 부위, KLG-R, KLG-L<br>   - 직업(7): 직종명, 시작일, 종료일, 기간-년, 기간-월, 중량물, 쪼그려앉기<br>   - 보조(6): 계단, 비틀림, 출발/정지, 좁은공간, 접촉, 뛰어내리기<br>4. **지능형 병합:**<br>   - 매칭키: 이름 + 생년월일 + 재해일자<br>   - 신규 환자 → 추가<br>   - 동일 환자 + 신규 진단 → 진단 추가<br>   - 동일 환자 + 신규 직업 → 직업 추가<br>   - 완전 중복 → 스킵<br>5. 가져오기 통계 표시 (신규/추가/스킵 건수) | ✅ 구현 | `BatchImportModal.jsx` |
 | **F-605** | **데이터관리** | **파일 Import (CSV)** | F-604의 CSV 지원에 포함 (BatchImportModal에서 CSV도 처리) | ✅ 구현 | F-604에 통합 |
+| **F-606** | **데이터관리** | **환자 검색/필터/정렬** | 1. **검색:** 사이드바 검색창에서 이름, 진단명, 직종명 실시간 필터링<br>2. **상태 필터:** 전체/완료/미완료 (종합소견 완료 기준, `isAssessmentComplete()`)<br>3. **정렬:** 입력순/이름순/생년월일순/평가일순<br>4. 검색/필터 시 "표시수/전체수" 카운트 표시 | ✅ 구현 | `usePatientList.js`<br>`calculations.js` |
+| **F-607** | **데이터관리** | **환자 다중 선택** | 1. 환자별 체크박스 표시<br>2. 전체선택/해제 체크박스<br>3. 선택된 환자 수 표시<br>4. 선택된 환자 대상 Excel 내보내기 (O-102C)<br>5. **선택된 환자 일괄 삭제** (IPC 확인 대화상자, 최소 1명 유지 보호, 삭제 후 선택 초기화) | ✅ 구현 | `App.jsx` |
+| **F-608** | **데이터관리** | **사용자 설정** | 1. 헤더 "⚙ 설정" 버튼 → 설정 모달<br>2. **테마:** 라이트/다크 전환 (CSS 변수 `data-theme` 속성)<br>3. **폰트 크기:** 작게(14px)/보통(16px)/크게(18px)<br>4. **새 환자 기본값:** 병원명, 진료과, 의사명 (새 환자 생성 시 적용)<br>5. **자동저장 간격:** 15초/30초/60초/사용안함<br>6. `localStorage` `wrEvaluationSettings` 키에 저장, 새로고침 시 복원 | ✅ 구현 | `SettingsModal.jsx`<br>`DEFAULT_SETTINGS` |
 
 ### 4.5. 입력 검증 (Validation)
 
@@ -166,11 +192,12 @@ public/
 
 | ID | 카테고리 | 기능명 | 상세 설명 (Report & Export) | 상태 | 비고 |
 | :-- | :-- | :-- | :-- | :-- | :-- |
-| **O-101** | **리포트** | **화면 UI** | 1. 좌측: 입력 폼(탭 구조) / 우측: 실시간 결과 미리보기<br>2. 종합소견(F-501~505) 작성 폼 포함<br>3. **반응형 레이아웃:**<br>   - PC(≥900px): 2열 그리드<br>   - 태블릿(768~899px): 단일열, 사이드바 오버레이<br>   - 모바일(≤480px): 풀너비, 터치 최적화<br>4. **다중 환자 관리:** 좌측 사이드바에서 환자 목록 선택<br>5. **미리보기 영역:** 화면 비례 높이 + 사용자 크기 조절 가능 (resize) | ✅ 구현 | `App.jsx` + 컴포넌트 |
+| **O-101** | **리포트** | **화면 UI** | 1. 좌측: 입력 폼(탭 구조) / 우측: 실시간 결과 미리보기<br>2. 종합소견(F-501~505) 작성 폼 포함<br>3. **반응형 레이아웃:**<br>   - PC(≥900px): 2열 그리드<br>   - 태블릿(768~899px): 단일열, 사이드바 오버레이<br>   - 모바일(≤480px): 풀너비, 터치 최적화<br>4. **다중 환자 관리:** 좌측 사이드바에서 환자 목록 선택<br>5. **미리보기 영역:** 화면 비례 높이 + 사용자 크기 조절 가능 (resize)<br>6. **종합소견 완료 상태:** 환자별 완료/미완료 상태 dot 표시 (녹색/빨강)<br>7. **자동 저장 표시:** 헤더에 마지막 자동 저장 시각 표시<br>8. **UI 툴팁:** 주요 버튼/필드에 title 속성으로 설명 제공<br>9. **설정 버튼:** 헤더에 ⚙ 설정 버튼 (테마/폰트/기본값/자동저장 변경)<br>10. **다크 모드:** CSS 변수 기반 테마 시스템, 라이트/다크 전환 지원 | ✅ 구현 | `App.jsx` + 컴포넌트 |
 | **O-102** | **내보내기** | **Excel Export (단건)** | 1. 2열 구조 XLSX 파일 생성<br>2. **EMR 필드:** B5(최종진단), B6(직업력), B7(개인요인), B8(종합소견), B9(복귀고려)<br>3. 파일명: `업무관련성평가_{이름}_{날짜}.xlsx`<br>4. 줄바꿈(\n) 활용하여 가독성 확보 | ✅ 구현 | SheetJS |
 | **O-102B** | **내보내기** | **Excel Export (배치)** | 1. 전체 환자 일괄 내보내기<br>2. 환자별 개별 XLSX 파일 생성<br>3. ZIP 아카이브로 압축: `업무관련성평가_{N}명_{날짜}.zip`<br>4. 파일명: `{이름}_{재해일자}.xlsx`<br>5. **유효성 검사:** 이름 없는 환자 스킵 (스킵 수 알림) | ✅ 구현 | JSZip |
+| **O-102C** | **내보내기** | **Excel Export (선택)** | 1. 체크박스로 선택된 환자만 일괄 내보내기 (F-607)<br>2. 환자별 개별 XLSX 파일 생성<br>3. ZIP 아카이브로 압축: `업무관련성평가_선택{N}명_{날짜}.zip`<br>4. 헤더에 "📊 Excel(선택 N)" 버튼 (선택 시에만 노출)<br>5. 이름 없는 환자 스킵 | ✅ 구현 | JSZip |
 | **O-103** | **배포** | **패키지** | 1. Electron 기반 Windows Installer (NSIS, .exe)<br>2. **빌드 옵션:**<br>   - `electron:build` — ia32 + x64 통합 빌드<br>   - `electron:build:win32` — 32bit 전용<br>   - `electron:build:win64` — 64bit 전용<br>3. 한국어 언어 지원<br>4. 오프라인 실행 환경 보장 | ✅ 구현 | Electron Builder |
-| **O-104** | **내보내기** | **PDF Export** | 1. html2pdf.js 라이브러리로 PDF 직접 생성<br>2. 서식 포함 테이블 레이아웃<br>3. Noto Sans KR 폰트, A4 용지 최적화<br>4. 색상 코딩된 신체부담 배지 포함<br>5. 파일명: `업무관련성평가_{이름}_{날짜}.pdf` | ✅ 구현 | html2pdf.js |
+| **O-104** | **내보내기** | **PDF Export** | 1. html2pdf.js 라이브러리로 PDF 직접 생성<br>2. 서식 포함 테이블 레이아웃<br>3. Noto Sans KR 폰트, A4 용지 최적화<br>4. 색상 코딩된 신체부담 배지 포함<br>5. 파일명: `업무관련성평가_{이름}_{날짜}.pdf`<br>6. **포함 섹션:** 기본정보, 신청상병, 특이사항, 직업력(보조요인 포함), 신체부담기여도, 종합소견(상병별 좌우 평가·낮음사유), 복귀고려사항, 평가기관정보 | ✅ 구현 | html2pdf.js |
 
 ---
 
@@ -255,9 +282,9 @@ ELSE "불충분함"
     weight: '',         // kg
     birthDate: '',      // YYYY-MM-DD
     injuryDate: '',     // YYYY-MM-DD
-    hospitalName: '',   // 병원명
-    department: '',     // 진료과
-    doctorName: '',     // 의사명
+    hospitalName: '근로복지공단 안산병원',   // 병원명 (기본값)
+    department: '직업환경의학과',           // 진료과 (기본값)
+    doctorName: '김호길',                   // 의사명 (기본값)
     evaluationDate: '', // YYYY-MM-DD (오늘 날짜 자동)
     specialNotes: '',   // 특이사항
     diagnoses: [Diagnosis],
@@ -421,12 +448,16 @@ FALLBACK_PRESETS // 기본 프리셋 3개 (파일 로딩 실패 시)
 - [x] F-604, F-605: 파일 Import (Excel, CSV)
 - [x] O-104: PDF Export
 
-### Phase 3 (확장 기능) — 부분 구현
+### Phase 3 (확장 기능) — 대부분 구현
 - [x] O-103: Electron 패키지 (Windows 7 32bit/64bit, Windows 10/11)
 - [x] O-102B: 배치 Excel Export (ZIP)
-- [ ] F-603: 자동 임시저장
+- [x] O-102C: 선택 Excel Export (ZIP)
+- [x] F-603: 자동 임시저장 (30초 간격)
+- [x] F-606: 환자 검색/필터/정렬
+- [x] F-607: 환자 다중 선택
 - [ ] Preset 관리자 모드 (Preset 추가/수정/삭제)
-- [ ] 사용자 설정 (폰트 크기, 테마 등)
+- [x] F-608: 사용자 설정 (테마, 폰트 크기, 기본값, 자동저장 간격)
+- [x] F-607 확장: 선택 환자 일괄 삭제
 - [ ] 이력 관리 (동일 환자 이전 평가 기록)
 
 ---
