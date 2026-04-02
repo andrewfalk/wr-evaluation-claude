@@ -12,6 +12,7 @@ import { createPatient, createPatientData, createDiagnosis, createJob, DEFAULT_S
 import { computePatientCalc, isAssessmentComplete } from './utils/calculations';
 import { usePatientList } from './hooks/usePatientList';
 import { loadSavedItems, savePatientsData, deleteSavedItem, hasDuplicateName } from './utils/storageHandlers';
+import { exportForUnified } from './utils/batchExport';
 
 function App() {
   const [patients, setPatients] = useState([createPatient()]);
@@ -453,9 +454,10 @@ function App() {
                     <h4>{item.name}</h4>
                     <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{item.count || 1}명 | {new Date(item.savedAt).toLocaleString('ko-KR')}</p>
                   </div>
-                  <div style={{ display: 'flex', gap: 4 }}>
+                  <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
                     <button className="btn btn-primary btn-xs" onClick={() => handleLoad(item, 'overwrite')} title="기존 데이터를 삭제하고 이 저장 데이터로 교체">덮어쓰기</button>
                     <button className="btn btn-info btn-xs" onClick={() => handleLoad(item, 'append')} title="기존 데이터를 유지하고 이 저장 데이터를 뒤에 추가">추가</button>
+                    <button className="btn btn-secondary btn-xs" onClick={() => exportForUnified(item.patients)} title="통합 프로그램(무릎+척추)에서 일괄 Import 가능한 엑셀 파일로 내보내기">통합용 내보내기</button>
                     <button className="btn btn-danger btn-xs" onClick={() => handleDelete(item.id)}>삭제</button>
                   </div>
                 </div>
