@@ -280,6 +280,45 @@ function App() {
     }
   };
 
+  const handleUnifiedSingle = async () => {
+    const e = validate(formData);
+    setErrors(e);
+    if (Object.keys(e).length) {
+      if (window.electron?.showAlert) await window.electron.showAlert('필수항목 확인');
+      else alert('필수항목 확인');
+      return;
+    }
+    exportForUnified([activePatient]);
+  };
+
+  const handleUnifiedBatch = async () => {
+    try {
+      const validPatients = patients.filter(p => p.data.name);
+      if (validPatients.length === 0) throw new Error('내보낼 환자가 없습니다 (이름 미입력)');
+      const skipped = patients.length - validPatients.length;
+      exportForUnified(validPatients);
+      if (skipped > 0) {
+        const msg = `${validPatients.length}명 내보냄 (이름 미입력 ${skipped}명 제외)`;
+        if (window.electron?.showAlert) await window.electron.showAlert(msg);
+        else alert(msg);
+      }
+    } catch (err) {
+      if (window.electron?.showAlert) await window.electron.showAlert(err.message);
+      else alert(err.message);
+    }
+  };
+
+  const handleUnifiedSelected = async () => {
+    try {
+      const selected = patients.filter(p => selectedIds.has(p.id) && p.data.name);
+      if (selected.length === 0) throw new Error('선택된 환자가 없거나 이름이 미입력입니다');
+      exportForUnified(selected);
+    } catch (err) {
+      if (window.electron?.showAlert) await window.electron.showAlert(err.message);
+      else alert(err.message);
+    }
+  };
+
   const handlePDF = async () => {
     const e = validate(formData);
     setErrors(e);
@@ -392,9 +431,12 @@ function App() {
             <button className="btn btn-secondary btn-sm" onClick={() => setShowSaveModal(true)} title="현재 데이터를 로컬에 저장">💾 저장</button>
             <button className="btn btn-secondary btn-sm" onClick={() => setShowLoadModal(true)} title="저장된 데이터 불러오기">📂 불러오기</button>
             <button className="btn btn-secondary btn-sm" onClick={() => setShowSettings(true)} title="앱 설정 (테마, 폰트, 기본값 등)">⚙ 설정</button>
-            <button className="btn btn-success btn-sm" onClick={handleExcelSingle} title="현재 환자 Excel 내보내기">📊 Excel(현재)</button>
-            {selectedIds.size > 0 && <button className="btn btn-success btn-sm" onClick={handleExcelSelected} title={`선택된 ${selectedIds.size}명 Excel 내보내기 (ZIP)`}>📊 Excel(선택 {selectedIds.size})</button>}
-            <button className="btn btn-success btn-sm" onClick={handleExcelBatch} title="전체 환자 Excel 일괄 내보내기 (ZIP)">📊 Excel(전체)</button>
+            <button className="btn btn-success btn-sm" onClick={handleExcelSingle} title="현재 환자 EMR 서식 Excel 내보내기">📊 EMR(현재)</button>
+            {selectedIds.size > 0 && <button className="btn btn-success btn-sm" onClick={handleExcelSelected} title={`선택된 ${selectedIds.size}명 EMR 서식 Excel 내보내기 (ZIP)`}>📊 EMR(선택 {selectedIds.size})</button>}
+            <button className="btn btn-success btn-sm" onClick={handleExcelBatch} title="전체 환자 EMR 서식 Excel 일괄 내보내기 (ZIP)">📊 EMR(전체)</button>
+            <button className="btn btn-info btn-sm" onClick={handleUnifiedSingle} title="현재 환자 일괄입력 서식 Excel 내보내기">📋 일괄(현재)</button>
+            {selectedIds.size > 0 && <button className="btn btn-info btn-sm" onClick={handleUnifiedSelected} title={`선택된 ${selectedIds.size}명 일괄입력 서식 Excel 내보내기`}>📋 일괄(선택 {selectedIds.size})</button>}
+            <button className="btn btn-info btn-sm" onClick={handleUnifiedBatch} title="전체 환자 일괄입력 서식 Excel 내보내기">📋 일괄(전체)</button>
             <button className="btn btn-primary btn-sm" onClick={handlePDF} title="현재 환자 PDF 내보내기">📄 PDF</button>
           </div>
         </header>
